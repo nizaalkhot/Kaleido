@@ -2,7 +2,7 @@
   "name": "kaleido",
   "version": "0.1.0",
   "private": true,
-  "description": "Kaleido - One source, a verified experience for every audience",
+  "description": "Kaleido — Agentic Multi-Format Personalization & Fact-Invariant Verification Platform powered by Vertex AI Gemini, Edge Neural TTS, and BigQuery",
   "scripts": {
     "dev:frontend": "npm.cmd --prefix frontend run dev",
     "dev:backend": "powershell -Command \"& .\\backend\\.venv\\Scripts\\uvicorn.exe backend.main:app --reload --port 8000\"",
@@ -11,12 +11,15 @@
   },
   "keywords": [
     "kaleido",
-    "gemini",
+    "gemini-2.5",
     "vertex-ai",
-    "tts",
-    "personalization",
-    "fact-checking"
+    "edge-tts",
+    "multi-format",
+    "fact-invariance",
+    "trust-critic",
+    "content-graph",
+    "bigquery"
   ],
-  "author": "",
+  "author": "Nizaal Khot",
   "license": "Apache-2.0"
 }

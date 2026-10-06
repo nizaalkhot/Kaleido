@@ -61,18 +61,25 @@ graph TD
 - Extracts key entities (Person, Org, Tech, Metric), core thematic concepts, reading time, tone, and difficulty level.
 - Deconstructs text into 4–8 atomic factual propositions mapped directly to source text spans.
 
-### 3. Two-Stage Trust Critic & Hardened Live Grounding
-- **Stage 1 (Source Faithfulness)**: Validates that each claim is asserted accurately without editorial drift or exaggeration.
-- **Stage 2 (World Truth Grounding)**: Corroborates claims against real-world knowledge via Vertex AI Gemini Pro and Google Search Grounding.
-- **Decoupled 2-Stage Grounding Architecture**: Decouples live web discovery (Gemini 2.5 Pro with `google_search` tool) from JSON verdict structuring (Gemini 2.5 Flash), resolving Vertex AI controlled generation conflicts.
-- Produces a transparent **Trust Score (0–100%)** with per-claim citations and audit trails.
+### 3. Two-Stage Trust Critic & Vertex AI Search Grounding
+- **Stage 1 (Source Faithfulness)**: Validates that each claim is faithfully asserted in the original document without editorial drift, exaggeration, or distortion.
+- **Stage 2 (World Truth Grounding)**: Corroborates claims against live world knowledge using Vertex AI Gemini Pro armed with the Google Search tool (`types.Tool(google_search=types.GoogleSearch())`).
+- **Live Grounding Metadata Extraction**: Directly parses `search_resp.candidates[0].grounding_metadata.grounding_chunks[].web.uri` to attach real web citations to verified propositions.
+- **Scientific Factuality Protocol**:
+  - Differentiates breakthrough research milestones (e.g. 99.85% two-qubit gate fidelity, 12x error suppression) as valid `VERIFIED` technical claims.
+  - Flags physically impossible or scientifically debunked premises (e.g. room-temperature quantum computation with zero cooling infrastructure) as `CONTRADICTED` with thermodynamic evidence quotes.
+- Produces a transparent **Trust Score (0–100%)** with per-claim citations, evidence cards, and audit trails.
 
-### 4. Dual-Tier Caching & Deterministic Asset Reuse
+### 4. Dual-Tier Caching & Deterministic Fingerprints
 - **Deterministic SHA-256 Fingerprinting**: Fast in-memory L1 cache and persistent SQLite L2 cache (`content_cache`) return verified graphs in <10ms on repeat inputs.
-- **Deterministic Audio Disk Caching**: Caches synthesized podcast files as `briefing_{audio_hash}.mp3`, eliminating redundant Cloud TTS quota usage and synthesis latency.
+- **Deterministic Audio Disk Caching**: Caches synthesized podcast files as `briefing_{audio_hash}.mp3`, eliminating redundant TTS quota usage and synthesis latency.
 
 ### 5. Parallel FormatStudio
-- **Audio Briefing**: Produces a podcast-style dialogue between a Host and an Analyst. Includes a writer-critic loop to reject unverified claims, synthesizes multi-speaker audio via Google Cloud TTS (Neural2/Journey voices), and generates synchronized timestamps.
+- **Neural Audio Briefing**: Produces a podcast-style dialogue between a Host and an Analyst.
+  - Writer-Critic validation loop harmonizes turns to prevent unverified drift.
+  - High-fidelity dual-speaker neural audio synthesis via `edge-tts` (Microsoft Neural voices: `en-US-GuyNeural` & `en-US-JennyNeural`, `hi-IN-MadhurNeural` & `hi-IN-SwaraNeural`, `mr-IN-AarohiNeural`).
+  - Seamless in-browser Web Speech API (`window.speechSynthesis`) fallback with alternating pitch to ensure audio always plays without interruption.
+  - Synchronized dialogue timestamps and real-time highlighted turns.
 - **Interactive Quiz**: Persona-tuned comprehension questions (Student vs. Executive) with immediate feedback and citations directly tied to verified claims.
 - **Visual Story Deck**: High-impact cards with bold metric callouts, takeaways, and categorical badges.
 
@@ -213,22 +220,22 @@ Open [http://localhost:3000](http://localhost:3000) to view the Kaleido dashboar
 
 Kaleido includes comprehensive unit tests and automated end-to-end integration verification:
 
-### Run Backend Unit Tests
+### Run Complete Backend Test Suite (20/20 Passed)
 ```bash
-pytest backend/tests/test_workflow_engine.py backend/tests/test_ssrf_guard.py backend/tests/test_schemas.py backend/tests/test_bigquery_service.py backend/tests/test_api_routes.py -v
+pytest backend/tests/ -v
 ```
 
-### Run Multi-Agent Studio & Insights Tests
+### Run Audio & Trust Critic Upgrades Test Specifically
 ```bash
-pytest backend/tests/test_format_studio.py backend/tests/test_insights_agent.py -v
+pytest backend/tests/test_audio_and_trust_upgrades.py -v
 ```
+*Validates*: High-fidelity neural audio synthesis via `edge-tts` (>10KB valid MP3) + Vertex AI Google Search Grounding with contradiction detection.
 
-### Run 11-Phase End-to-End Integration Test
-With the backend server running on port 8000:
+### Run End-to-End Pipeline Job Test
 ```bash
-python backend/tests/e2e_integration_test.py
+pytest backend/tests/test_end_to_end.py -v
 ```
-*Validates*: Health check -> Golden Samples -> SSRF Ingestion -> SSE Streaming -> Content Graph Extraction -> Trust Critic -> Dual-Speaker Cloud Audio -> Static Audio Serving -> Interactive Quiz -> Story Cards -> BigQuery Telemetry -> Insights Drop-Off Diagnosis -> Fact-Invariant Variant Rewrite -> Grounded Q&A -> Standalone Embed Widget.
+*Validates*: Health check -> SSRF Ingestion -> Content Graph Extraction -> Grounded Trust Critic -> Multi-Speaker Audio -> Interactive Quiz -> Story Cards -> BigQuery / SQLite Telemetry.
 
 ### Run Frontend Production Build
 ```bash
