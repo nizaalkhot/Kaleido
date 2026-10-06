@@ -89,21 +89,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/90 p-5 shadow-xl backdrop-blur">
+    <div className="liquid-card rounded-2xl p-5 shadow-2xl space-y-4">
       <audio ref={audioRef} src={audioSrc} preload="metadata" />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-            <Radio className="h-5 w-5 animate-pulse" />
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <Radio className="h-4 w-4 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-semibold text-neutral-100 text-sm tracking-wide">
+            <h3 className="font-semibold text-zinc-100 text-sm tracking-tight">
               {briefing.title}
             </h3>
-            <p className="text-xs text-neutral-400">
-              Multi-speaker synthesized brief • Neural2/Journey
+            <p className="text-[11px] text-zinc-400 font-mono">
+              Dual-speaker studio • Google Cloud Neural2 voices
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={cycleSpeed}
-            className="rounded-md border border-neutral-700 bg-neutral-800/80 px-2.5 py-1 text-xs font-medium text-neutral-300 hover:bg-neutral-700 transition"
+            className="tactile-btn rounded-lg border border-white/10 bg-zinc-800/80 px-2.5 py-1 text-xs font-mono font-medium text-zinc-300 hover:bg-zinc-700"
           >
             {playbackRate}x
           </button>
@@ -119,11 +119,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </div>
 
       {/* Player Controls */}
-      <div className="my-4 flex flex-col gap-2">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3.5">
           <button
             onClick={togglePlay}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-400 transition"
+            className="tactile-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-zinc-950 font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-300"
           >
             {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
           </button>
@@ -136,10 +136,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               step="0.1"
               value={currentTime}
               onChange={handleSeek}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-neutral-700 accent-indigo-500"
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-zinc-800 accent-cyan-400"
             />
-            <div className="flex justify-between text-[11px] text-neutral-400 mt-1 font-mono">
-              <span>{formatTime(currentTime)}</span>
+            <div className="flex justify-between text-[11px] text-zinc-400 mt-1.5 font-mono">
+              <span className="text-cyan-300 font-semibold">{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
@@ -147,15 +147,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </div>
 
       {/* Transcript with Speaker Badges and Active Sync */}
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-xs text-neutral-400 mb-2 font-medium">
-          <span className="flex items-center gap-1.5">
-            <Mic className="h-3.5 w-3.5 text-neutral-400" /> Synchronized Dialogue Transcript
+      <div className="pt-2 border-t border-white/5">
+        <div className="flex items-center justify-between text-xs text-zinc-400 mb-2.5">
+          <span className="flex items-center gap-1.5 font-medium text-zinc-300">
+            <Mic className="h-3.5 w-3.5 text-cyan-400" /> Synchronized Dialogue Transcript
           </span>
-          <span className="text-[11px] text-neutral-500">Click any turn to jump</span>
+          <span className="text-[10px] text-zinc-500 font-mono">Tap any turn to scrub</span>
         </div>
 
-        <div className="max-h-56 space-y-2.5 overflow-y-auto pr-1.5 scrollbar-thin">
+        <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
           {briefing.transcript.map((seg, idx) => {
             const isHost = seg.speaker.toLowerCase() === "host";
             const isActive = currentTime >= seg.start_time && currentTime <= seg.end_time;
@@ -166,27 +166,27 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 onClick={() => jumpToSegment(seg.start_time)}
                 className={`cursor-pointer rounded-xl p-3 transition border ${
                   isActive
-                    ? "bg-indigo-950/40 border-indigo-500/50 shadow-md ring-1 ring-indigo-500/30"
-                    : "bg-neutral-800/40 border-neutral-800 hover:bg-neutral-800/80"
+                    ? "bg-cyan-950/30 border-cyan-500/40 shadow-sm ring-1 ring-cyan-500/20"
+                    : "bg-zinc-900/60 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
                       isHost
-                        ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                        : "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+                        ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                        : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                     }`}
                   >
                     {seg.speaker}
                   </span>
-                  <span className="text-[10px] text-neutral-500 font-mono">
+                  <span className="text-[10px] text-zinc-500 font-mono">
                     {formatTime(seg.start_time)} - {formatTime(seg.end_time)}
                   </span>
                 </div>
                 <p
                   className={`text-xs leading-relaxed ${
-                    isActive ? "text-neutral-100 font-medium" : "text-neutral-300"
+                    isActive ? "text-zinc-100 font-medium" : "text-zinc-400"
                   }`}
                 >
                   {seg.text}

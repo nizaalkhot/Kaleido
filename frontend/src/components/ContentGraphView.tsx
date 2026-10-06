@@ -85,31 +85,31 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/90 p-5 shadow-xl backdrop-blur flex flex-col gap-5">
+    <div className="liquid-card rounded-2xl p-5 shadow-2xl flex flex-col gap-5">
       {/* Overview & Metadata */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <Network className="h-5 w-5 text-indigo-400" />
-          <h3 className="font-semibold text-neutral-100 text-base">Content Graph & Overview</h3>
+          <Network className="h-5 w-5 text-cyan-400" />
+          <h3 className="font-semibold text-zinc-100 text-base tracking-tight">Content Graph & Overview</h3>
         </div>
 
-        <h4 className="text-sm font-bold text-neutral-200 mb-2">{graph.title}</h4>
-        <p className="text-xs text-neutral-300 leading-relaxed bg-neutral-950/40 p-3.5 rounded-xl border border-neutral-800/80">
+        <h4 className="text-sm font-bold text-zinc-100 mb-2 tracking-tight">{graph.title}</h4>
+        <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-950/60 p-3.5 rounded-xl border border-white/5">
           {graph.summary}
         </p>
 
         {/* Dimension Badges */}
-        <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-lg bg-neutral-800/80 border border-neutral-700/80 px-2.5 py-1 text-neutral-300">
-            <Clock className="h-3 w-3 text-indigo-400" /> {graph.reading_time_minutes} min read
+        <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px] font-mono">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 border border-white/5 px-2.5 py-1 text-zinc-300">
+            <Clock className="h-3 w-3 text-cyan-400" /> {graph.reading_time_minutes} min read
           </span>
-          <span className="inline-flex items-center gap-1 rounded-lg bg-neutral-800/80 border border-neutral-700/80 px-2.5 py-1 text-neutral-300 capitalize">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 border border-white/5 px-2.5 py-1 text-zinc-300 capitalize">
             <Gauge className="h-3 w-3 text-amber-400" /> {graph.complexity_level}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-lg bg-neutral-800/80 border border-neutral-700/80 px-2.5 py-1 text-neutral-300 capitalize">
-            <Sparkles className="h-3 w-3 text-purple-400" /> {graph.tone} tone
+          <span className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 border border-white/5 px-2.5 py-1 text-zinc-300 capitalize">
+            <Sparkles className="h-3 w-3 text-emerald-400" /> {graph.tone} tone
           </span>
-          <span className="inline-flex items-center gap-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 text-indigo-300 uppercase font-mono">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 text-cyan-300 uppercase">
             {graph.language}
           </span>
         </div>
@@ -117,8 +117,8 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
 
       {/* Extracted Entities */}
       <div>
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300 mb-2">
-          <Tag className="h-3.5 w-3.5 text-neutral-400" /> Extracted Entities ({graph.entities.length})
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 mb-2">
+          <Tag className="h-3.5 w-3.5 text-zinc-500" /> Extracted Entities ({graph.entities.length})
         </div>
         <div className="flex flex-wrap gap-1.5">
           {graph.entities.map((e, idx) => (
@@ -139,41 +139,41 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
       {/* Key Concepts */}
       {graph.concepts.length > 0 && (
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300 mb-2">
-            <BookOpen className="h-3.5 w-3.5 text-neutral-400" /> Core Concepts
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 mb-2">
+            <BookOpen className="h-3.5 w-3.5 text-zinc-500" /> Core Concepts
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {graph.concepts.map((c, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-2.5 text-xs"
+                className="rounded-xl border border-white/5 bg-zinc-900/50 p-2.5 text-xs"
               >
-                <div className="font-semibold text-neutral-200 mb-0.5">{c.name}</div>
-                <p className="text-[11px] text-neutral-400 leading-snug">{c.description}</p>
+                <div className="font-semibold text-zinc-200 mb-0.5">{c.name}</div>
+                <p className="text-[11px] text-zinc-400 leading-snug">{c.description}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Grounded Q&A Assistant with Adaptive Quick Actions (PLAN.md:26) */}
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-3.5 space-y-3">
+      {/* Grounded Q&A Assistant with Adaptive Quick Actions */}
+      <div className="rounded-xl border border-white/5 bg-zinc-950/70 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5 text-indigo-400" /> Grounded Q&A
+          <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5 text-cyan-400" /> Grounded Q&A Assistant
           </span>
-          <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+          <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
             <CheckCircle2 className="h-2.5 w-2.5" /> 100% Fact-Checked Answers
           </span>
         </div>
 
-        {/* Quick Action Chips (PLAN.md:26: "simpler", "why should I care", grounded Q&A) */}
+        {/* Quick Action Chips */}
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             disabled={isAsking}
             onClick={() => handleQuickPrompt("Explain this in simpler terms for a beginner.")}
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-700/80 bg-neutral-800/60 px-2.5 py-1 text-[11px] text-neutral-300 hover:border-indigo-500 hover:bg-neutral-800 transition"
+            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
           >
             <Zap className="h-3 w-3 text-amber-400" /> Simpler
           </button>
@@ -181,17 +181,17 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
             type="button"
             disabled={isAsking}
             onClick={() => handleQuickPrompt("Why should I care about this development? What is its real-world impact?")}
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-700/80 bg-neutral-800/60 px-2.5 py-1 text-[11px] text-neutral-300 hover:border-indigo-500 hover:bg-neutral-800 transition"
+            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
           >
-            <Target className="h-3 w-3 text-indigo-400" /> Why should I care?
+            <Target className="h-3 w-3 text-cyan-400" /> Why should I care?
           </button>
           <button
             type="button"
             disabled={isAsking}
             onClick={() => handleQuickPrompt("What are the key verified numbers and metrics reported?")}
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-700/80 bg-neutral-800/60 px-2.5 py-1 text-[11px] text-neutral-300 hover:border-indigo-500 hover:bg-neutral-800 transition"
+            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
           >
-            <Sparkles className="h-3 w-3 text-purple-400" /> Key Metrics
+            <Sparkles className="h-3 w-3 text-emerald-400" /> Key Metrics
           </button>
         </div>
 

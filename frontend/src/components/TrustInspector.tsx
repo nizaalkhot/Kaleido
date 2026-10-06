@@ -41,32 +41,32 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/90 p-5 shadow-xl backdrop-blur flex flex-col gap-5">
+    <div className="liquid-card rounded-2xl p-5 shadow-2xl flex flex-col gap-5">
       {/* Trust Score Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-emerald-400" />
-            <h3 className="font-semibold text-neutral-100 text-base">Kaleido Trust Layer</h3>
+            <h3 className="font-semibold text-zinc-100 text-base tracking-tight">Kaleido Trust Layer</h3>
             {isCached && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 animate-pulse">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                 <Zap className="h-3 w-3 fill-amber-400" />
                 Cache Hit
               </span>
             )}
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Two-stage critic: Source Faithfulness + Vertex AI Search Grounding
+          <p className="text-xs text-zinc-400 mt-0.5 font-mono">
+            Two-stage critic • Source Faithfulness + Vertex AI Search Grounding
           </p>
         </div>
 
         <div className={`flex items-center gap-3 px-3.5 py-1.5 rounded-xl border ${getScoreColor(trustScore)}`}>
           <div className="text-right">
-            <div className="text-[10px] uppercase font-bold tracking-wider opacity-80">Trust Score</div>
+            <div className="text-[10px] uppercase font-mono font-bold tracking-wider opacity-80">Trust Score</div>
             <div className="text-xl font-black font-mono leading-none">{trustScore}%</div>
           </div>
           <div className="h-7 w-px bg-current opacity-20" />
-          <div className="text-[11px] font-medium leading-tight">
+          <div className="text-[11px] font-mono font-medium leading-tight">
             {verifiedCount}/{claims.length} Verified
           </div>
         </div>
@@ -76,10 +76,10 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
       <div className="grid grid-cols-3 gap-2 text-center text-xs">
         <button
           onClick={() => setFilter("VERIFIED")}
-          className={`rounded-xl p-2.5 border transition ${
+          className={`tactile-btn rounded-xl p-2.5 border transition ${
             filter === "VERIFIED"
               ? "bg-emerald-950/40 border-emerald-500 text-emerald-300"
-              : "bg-neutral-800/40 border-neutral-800 text-neutral-400 hover:bg-neutral-800"
+              : "bg-zinc-900/60 border-white/5 text-zinc-400 hover:bg-zinc-800"
           }`}
         >
           <div className="font-mono text-base font-bold text-emerald-400">{verifiedCount}</div>
@@ -90,10 +90,10 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
 
         <button
           onClick={() => setFilter("CONTRADICTED")}
-          className={`rounded-xl p-2.5 border transition ${
+          className={`tactile-btn rounded-xl p-2.5 border transition ${
             filter === "CONTRADICTED"
               ? "bg-rose-950/40 border-rose-500 text-rose-300"
-              : "bg-neutral-800/40 border-neutral-800 text-neutral-400 hover:bg-neutral-800"
+              : "bg-zinc-900/60 border-white/5 text-zinc-400 hover:bg-zinc-800"
           }`}
         >
           <div className="font-mono text-base font-bold text-rose-400">{contradictedCount}</div>
@@ -104,13 +104,13 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
 
         <button
           onClick={() => setFilter("UNVERIFIED")}
-          className={`rounded-xl p-2.5 border transition ${
+          className={`tactile-btn rounded-xl p-2.5 border transition ${
             filter === "UNVERIFIED"
               ? "bg-slate-900 border-slate-500 text-slate-300"
-              : "bg-neutral-800/40 border-neutral-800 text-neutral-400 hover:bg-neutral-800"
+              : "bg-zinc-900/60 border-white/5 text-zinc-400 hover:bg-zinc-800"
           }`}
         >
-          <div className="font-mono text-base font-bold text-neutral-300">{unverifiedCount}</div>
+          <div className="font-mono text-base font-bold text-zinc-300">{unverifiedCount}</div>
           <div className="text-[11px] font-medium mt-0.5 flex items-center justify-center gap-1">
             <HelpCircle className="h-3 w-3" /> Unverified
           </div>
@@ -119,11 +119,11 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
 
       {/* Filter Reset if active */}
       {filter !== "ALL" && (
-        <div className="flex items-center justify-between text-xs text-neutral-400 px-1">
-          <span>Showing: <strong className="text-neutral-200">{filter}</strong> claims</span>
+        <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
+          <span>Showing: <strong className="text-zinc-200">{filter}</strong> claims</span>
           <button
             onClick={() => setFilter("ALL")}
-            className="text-indigo-400 hover:underline font-medium text-[11px]"
+            className="text-cyan-400 hover:underline font-mono text-[11px]"
           >
             Show All ({claims.length})
           </button>
@@ -131,9 +131,9 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
       )}
 
       {/* Claims List */}
-      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {filteredClaims.length === 0 ? (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-6 text-center text-xs text-neutral-500">
+          <div className="rounded-xl border border-white/5 bg-zinc-950/50 p-6 text-center text-xs text-zinc-500">
             No claims found under this filter.
           </div>
         ) : (
@@ -149,72 +149,72 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
                   isContradicted
                     ? "border-rose-500/40 bg-rose-950/10"
                     : isVerified
-                    ? "border-emerald-500/30 bg-neutral-900/80"
-                    : "border-neutral-800 bg-neutral-900/60"
+                    ? "border-emerald-500/25 bg-zinc-900/70"
+                    : "border-white/5 bg-zinc-900/50"
                 }`}
               >
                 {/* Header row */}
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : claim.claim_id)}
-                  className="cursor-pointer p-3.5 flex items-start justify-between gap-3 select-none"
+                  className="cursor-pointer p-3.5 flex items-start justify-between gap-3 select-none hover:bg-zinc-800/40 transition"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       {isVerified && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-400">
                           <ShieldCheck className="h-3 w-3" /> VERIFIED ({Math.round(claim.confidence * 100)}%)
                         </span>
                       )}
                       {isContradicted && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 text-[10px] font-bold text-rose-300 animate-pulse">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-rose-300">
                           <AlertTriangle className="h-3 w-3" /> FLAGGED / CONTRADICTED
                         </span>
                       )}
                       {!isVerified && !isContradicted && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-neutral-800 border border-neutral-700 px-2 py-0.5 text-[10px] font-bold text-neutral-400">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-400">
                           <HelpCircle className="h-3 w-3" /> UNVERIFIED
                         </span>
                       )}
 
                       {claim.source_span && (
-                        <span className="text-[10px] text-neutral-500 font-mono">
+                        <span className="text-[10px] text-zinc-500 font-mono">
                           {claim.source_span}
                         </span>
                       )}
 
                       {claim.fact_invariance_passed && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-indigo-400/90 font-medium">
-                          <Lock className="h-2.5 w-2.5" /> Fact-Invariant
+                        <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400/90 font-mono">
+                          <Lock className="h-2.5 w-2.5" /> Invariant
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs font-medium text-neutral-200 leading-snug">
+                    <p className="text-xs font-medium text-zinc-200 leading-snug">
                       {claim.normalized_statement}
                     </p>
                   </div>
 
-                  <div className="text-neutral-500 pt-1">
+                  <div className="text-zinc-500 pt-1">
                     {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </div>
                 </div>
 
                 {/* Expanded Details Drawer */}
                 {isExpanded && (
-                  <div className="border-t border-neutral-800/80 bg-neutral-950/60 p-3.5 space-y-2.5 text-xs">
+                  <div className="border-t border-white/5 bg-zinc-950/80 p-3.5 space-y-2.5 text-xs">
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-neutral-500 mb-0.5">
+                      <div className="text-[10px] uppercase font-mono font-bold text-zinc-500 mb-0.5">
                         Source Verbatim Quote
                       </div>
-                      <blockquote className="rounded-lg border-l-2 border-indigo-500/60 bg-neutral-900/60 px-3 py-1.5 italic text-neutral-300 text-[11px]">
+                      <blockquote className="rounded-lg border-l-2 border-cyan-500/60 bg-zinc-900/60 px-3 py-1.5 italic text-zinc-300 text-[11px]">
                         "{claim.quote}"
                       </blockquote>
                     </div>
 
                     {claim.evidence_quote && (
                       <div>
-                        <div className="text-[10px] uppercase font-bold text-neutral-500 mb-0.5 flex items-center gap-1">
-                          <SearchCheck className="h-3 w-3 text-indigo-400" /> Evidence & Grounding
+                        <div className="text-[10px] uppercase font-mono font-bold text-zinc-500 mb-0.5 flex items-center gap-1">
+                          <SearchCheck className="h-3 w-3 text-cyan-400" /> Evidence & Grounding
                         </div>
                         <p className={`rounded-lg p-2 text-[11px] leading-relaxed border ${
                           isContradicted 
