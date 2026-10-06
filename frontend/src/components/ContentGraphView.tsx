@@ -200,8 +200,8 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs scrollbar-thin">
             {chatHistory.map((item, idx) => (
               <div key={idx} className="space-y-1">
-                <div className="font-medium text-indigo-300 text-[11px]">Q: {item.q}</div>
-                <div className="text-neutral-300 bg-neutral-900 p-2 rounded-lg border border-neutral-800 text-[11px] leading-relaxed">
+                <div className="font-mono text-cyan-300 text-[11px]">Q: {item.q}</div>
+                <div className="text-zinc-200 bg-zinc-900/90 p-2.5 rounded-xl border border-white/5 text-[11px] leading-relaxed">
                   {item.a}
                 </div>
               </div>
@@ -216,12 +216,12 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask a question about this verified content..."
             disabled={isAsking}
-            className="flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-100 placeholder-neutral-500 focus:border-indigo-500 focus:outline-none"
+            className="flex-1 rounded-xl border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-cyan-500/50 focus:outline-none"
           />
           <button
             type="submit"
             disabled={isAsking || !question.trim()}
-            className="flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition"
+            className="tactile-btn flex items-center justify-center rounded-xl bg-cyan-400 px-3.5 py-1.5 text-xs font-bold text-black hover:bg-cyan-300 disabled:opacity-50 transition"
           >
             {isAsking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>

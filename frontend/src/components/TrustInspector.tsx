@@ -238,7 +238,7 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
                               href={src}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded bg-neutral-800/80 px-2 py-0.5 text-[10px] text-indigo-400 hover:text-indigo-300 hover:bg-neutral-700 transition"
+                              className="inline-flex items-center gap-1 rounded bg-zinc-800/80 px-2 py-0.5 text-[10px] text-cyan-400 hover:text-cyan-300 hover:bg-zinc-700 transition"
                             >
                               <ExternalLink className="h-2.5 w-2.5" />
                               {src.replace(/^https?:\/\//, "").split("/")[0]}
