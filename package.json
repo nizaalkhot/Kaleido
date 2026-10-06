@@ -1,0 +1,22 @@
+{
+  "name": "kaleido",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kaleido - One source, a verified experience for every audience",
+  "scripts": {
+    "dev:frontend": "npm.cmd --prefix frontend run dev",
+    "dev:backend": "powershell -Command \"& .\\backend\\.venv\\Scripts\\uvicorn.exe backend.main:app --reload --port 8000\"",
+    "build:frontend": "npm.cmd --prefix frontend run build",
+    "test:backend": "powershell -Command \"& .\\backend\\.venv\\Scripts\\pytest.exe backend/tests/ -v\""
+  },
+  "keywords": [
+    "kaleido",
+    "gemini",
+    "vertex-ai",
+    "tts",
+    "personalization",
+    "fact-checking"
+  ],
+  "author": "",
+  "license": "Apache-2.0"
+}
