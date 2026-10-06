@@ -61,12 +61,17 @@ graph TD
 - Extracts key entities (Person, Org, Tech, Metric), core thematic concepts, reading time, tone, and difficulty level.
 - Deconstructs text into 4–8 atomic factual propositions mapped directly to source text spans.
 
-### 3. Two-Stage Trust Critic
+### 3. Two-Stage Trust Critic & Hardened Live Grounding
 - **Stage 1 (Source Faithfulness)**: Validates that each claim is asserted accurately without editorial drift or exaggeration.
-- **Stage 2 (World Truth Grounding)**: Corroborates claims against real-world knowledge via Vertex AI Gemini Pro and search grounding.
-- Produces a transparent **Trust Score (0–100%)** with per-claim audit trails.
+- **Stage 2 (World Truth Grounding)**: Corroborates claims against real-world knowledge via Vertex AI Gemini Pro and Google Search Grounding.
+- **Decoupled 2-Stage Grounding Architecture**: Decouples live web discovery (Gemini 2.5 Pro with `google_search` tool) from JSON verdict structuring (Gemini 2.5 Flash), resolving Vertex AI controlled generation conflicts.
+- Produces a transparent **Trust Score (0–100%)** with per-claim citations and audit trails.
 
-### 4. Parallel FormatStudio
+### 4. Dual-Tier Caching & Deterministic Asset Reuse
+- **Deterministic SHA-256 Fingerprinting**: Fast in-memory L1 cache and persistent SQLite L2 cache (`content_cache`) return verified graphs in <10ms on repeat inputs.
+- **Deterministic Audio Disk Caching**: Caches synthesized podcast files as `briefing_{audio_hash}.mp3`, eliminating redundant Cloud TTS quota usage and synthesis latency.
+
+### 5. Parallel FormatStudio
 - **Audio Briefing**: Produces a podcast-style dialogue between a Host and an Analyst. Includes a writer-critic loop to reject unverified claims, synthesizes multi-speaker audio via Google Cloud TTS (Neural2/Journey voices), and generates synchronized timestamps.
 - **Interactive Quiz**: Persona-tuned comprehension questions (Student vs. Executive) with immediate feedback and citations directly tied to verified claims.
 - **Visual Story Deck**: High-impact cards with bold metric callouts, takeaways, and categorical badges.
