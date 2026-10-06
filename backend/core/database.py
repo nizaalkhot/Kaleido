@@ -47,6 +47,14 @@ async def init_database():
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Content and claims verification cache table
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS content_cache (
+                content_hash TEXT PRIMARY KEY,
+                graph_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Migrate schema if columns are missing from older database
         async with db.execute("PRAGMA table_info(jobs)") as cursor:
             columns = [row[1] for row in await cursor.fetchall()]

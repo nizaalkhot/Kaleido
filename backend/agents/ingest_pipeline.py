@@ -22,6 +22,8 @@ from backend.models.schemas import (
 )
 from backend.agents.workflow_engine import WorkflowStep
 from backend.utils.json_parser import clean_and_parse_json
+from backend.services.cache_service import cache_service
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +127,18 @@ class GraphBuilderStep(WorkflowStep):
         lens = context.get("lens", "news")
         persona = context.get("persona", "general")
         language = context.get("language", "en")
+        url = context.get("url")
+
+        # 1. Check Content Cache
+        content_hash = cache_service.compute_content_hash(text, url, lens, persona, language)
+        context["content_hash"] = content_hash
+
+        cached_graph = await cache_service.get_cached_graph(content_hash)
+        if cached_graph:
+            logger.info(f"⚡ ContentGraph cache HIT for hash '{content_hash}'. Skipping extraction.")
+            context["content_graph"] = cached_graph
+            context["is_cached"] = True
+            return context
 
         client = config.get_genai_client()
 
@@ -172,7 +186,8 @@ Respond strictly in valid JSON matching this structure:
 }}
 """
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=config.GEMINI_FLASH_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(

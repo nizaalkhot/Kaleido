@@ -54,6 +54,8 @@ class ContentGraph(BaseModel):
     claims: List[Claim] = Field(default_factory=list)
     trust_score: float = Field(default=0.0, ge=0.0, le=100.0, description="Overall trust score percentage")
     raw_content_preview: Optional[str] = None
+    is_cached: bool = Field(default=False, description="True if retrieved from fingerprint cache")
+
 
 class DialogueTurn(BaseModel):
     speaker: str = Field(..., description="'Host' or 'Analyst'")

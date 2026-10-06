@@ -8,6 +8,8 @@ from backend import config
 from backend.models.schemas import ContentGraph, Claim, VerificationStatus
 from backend.agents.workflow_engine import WorkflowStep
 from backend.utils.json_parser import clean_and_parse_json
+from backend.services.cache_service import cache_service
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,11 @@ class TrustCriticStep(WorkflowStep):
             logger.info("No claims found to verify.")
             return context
 
+        # If graph was retrieved from cache, it is already verified
+        if context.get("is_cached"):
+            logger.info(f"⚡ ContentGraph claims already verified (cached). Trust score: {graph.trust_score}%.")
+            return context
+
         client = config.get_genai_client()
         updated_claims: List[Claim] = []
         verified_count = 0
@@ -39,65 +46,87 @@ class TrustCriticStep(WorkflowStep):
             for c in graph.claims
         ]
 
-        verification_prompt = f"""
+        eval_map = {}
+        try:
+            # Stage A: Unconstrained Search Grounding via Vertex AI (No JSON restriction to avoid 400 error)
+            try:
+                search_prompt = f"""
 You are Kaleido's Trust & Truth Verification Critic.
-Evaluate each claim on two strict axes:
-1. Source Faithfulness: Does the source text accurately support this exact claim without distortion or exaggeration?
-2. External World Truth: Is this factually accurate in the real world?
+Search Google to corroborate or contradict each of the following factual claims:
 
 Source Text:
-\"\"\"{source_text[:12000]}\"\"\"
+\"\"\"{source_text[:8000]}\"\"\"
 
 Claims to verify:
 {json.dumps(claims_payload, indent=2)}
 
-For EACH claim, return a structured verdict:
-- id: matching claim id
-- status: "VERIFIED" (true in source and world), "CONTRADICTED" (falsified, distorted, or debunked), or "UNVERIFIED" (unsubstantiated speculation)
-- confidence: float between 0.0 and 1.0
-- evidence_quote: specific corroborating or contradicting quote/evidence
-- external_sources: list of reference links or authoritative domains if known
-- fact_invariance_passed: true if it faithfully represents source claims without drift
+For each claim:
+1. Is it faithfully asserted in the source text without distortion?
+2. Does external real-world knowledge confirm or debunk it?
+Provide evidence quotes, URLs, and state if it is VERIFIED, CONTRADICTED, or UNVERIFIED.
+"""
+                search_resp = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=config.GEMINI_PRO_MODEL,
+                    contents=search_prompt,
+                    config=types.GenerateContentConfig(
+                        tools=[types.Tool(google_search=types.GoogleSearch())]
+                    )
+                )
 
-Respond strictly in valid JSON matching this structure:
+                # Stage B: Rapid structuring into typed JSON evaluations
+                struct_prompt = f"""
+Convert the following factual verification report into structured JSON matching the specified format:
+
+Verification Report:
+\"\"\"{search_resp.text}\"\"\"
+
+Respond strictly in valid JSON matching:
 {{
   "evaluations": [
     {{
       "id": "claim_1",
       "status": "VERIFIED",
       "confidence": 0.95,
-      "evidence_quote": "...",
+      "evidence_quote": "corroborating or contradicting evidence",
       "external_sources": ["https://..."],
       "fact_invariance_passed": true
     }}
   ]
 }}
 """
-        eval_map = {}
-        try:
-            # Attempt with Google Search Grounding tool enabled on Vertex AI
-            try:
-                response = client.models.generate_content(
-                    model=config.GEMINI_PRO_MODEL,
-                    contents=verification_prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        tools=[types.Tool(google_search=types.GoogleSearch())]
-                    )
-                )
-            except Exception as search_err:
-                logger.info(f"Search grounding unavailable ({search_err}). Falling back to Pro model JSON verification.")
-                response = client.models.generate_content(
-                    model=config.GEMINI_PRO_MODEL,
-                    contents=verification_prompt,
+                struct_resp = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=config.GEMINI_FLASH_MODEL,
+                    contents=struct_prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json"
                     )
                 )
+                data = clean_and_parse_json(struct_resp.text, default={})
+                for item in data.get("evaluations", []):
+                    eval_map[item.get("id")] = item
+                logger.info(f"Google Search Grounding successfully corroborated {len(eval_map)} claims.")
 
-            data = clean_and_parse_json(response.text, default={})
-            for item in data.get("evaluations", []):
-                eval_map[item.get("id")] = item
+            except Exception as search_err:
+                logger.info(f"Two-stage search grounding fallback ({search_err}). Using direct Pro JSON verification.")
+                direct_prompt = f"""
+You are Kaleido's Trust Critic. Evaluate each claim on source faithfulness and world truth:
+Source: \"\"\"{source_text[:8000]}\"\"\"
+Claims: {json.dumps(claims_payload, indent=2)}
+Return strictly JSON with evaluations array (id, status, confidence, evidence_quote, external_sources, fact_invariance_passed).
+"""
+                response = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=config.GEMINI_PRO_MODEL,
+                    contents=direct_prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
+                )
+                data = clean_and_parse_json(response.text, default={})
+                for item in data.get("evaluations", []):
+                    eval_map[item.get("id")] = item
         except Exception as e:
             logger.error(f"Error during claim verification LLM call: {e}. Applying heuristic verification fallback.")
             # Heuristic verification fallback
@@ -156,4 +185,10 @@ Respond strictly in valid JSON matching this structure:
         graph.trust_score = score
         context["content_graph"] = graph
         logger.info(f"Trust Layer completed. Total claims: {total_claims}, Verified: {verified_count}, Trust Score: {score}%")
+
+        # Save to Content Cache for instant subsequent retrievals
+        content_hash = context.get("content_hash")
+        if content_hash:
+            await cache_service.set_cached_graph(content_hash, graph)
+
         return context

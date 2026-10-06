@@ -555,6 +555,7 @@ export default function Home() {
                 <TrustInspector
                   claims={jobStatus.graph.claims}
                   trustScore={jobStatus.graph.trust_score}
+                  isCached={jobStatus.graph.is_cached}
                 />
               </div>
             </div>

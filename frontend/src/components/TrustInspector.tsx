@@ -10,16 +10,18 @@ import {
   ChevronUp,
   CheckCircle2,
   Lock,
-  SearchCheck
+  SearchCheck,
+  Zap
 } from "lucide-react";
 import { Claim, VerificationStatus } from "@/types";
 
 interface TrustInspectorProps {
   claims: Claim[];
   trustScore: number;
+  isCached?: boolean;
 }
 
-export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustScore }) => {
+export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustScore, isCached }) => {
   const [filter, setFilter] = useState<"ALL" | VerificationStatus>("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(claims[0]?.claim_id || null);
 
@@ -46,6 +48,12 @@ export const TrustInspector: React.FC<TrustInspectorProps> = ({ claims, trustSco
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-emerald-400" />
             <h3 className="font-semibold text-neutral-100 text-base">Kaleido Trust Layer</h3>
+            {isCached && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 animate-pulse">
+                <Zap className="h-3 w-3 fill-amber-400" />
+                Cache Hit
+              </span>
+            )}
           </div>
           <p className="text-xs text-neutral-400 mt-0.5">
             Two-stage critic: Source Faithfulness + Vertex AI Search Grounding

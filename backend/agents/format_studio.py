@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 from typing import Dict, Any, List
 from google import genai
 from google.genai import types
@@ -73,7 +74,8 @@ Respond strictly in valid JSON matching:
 }}
 """
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=config.GEMINI_PRO_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -171,7 +173,8 @@ Respond strictly in valid JSON matching:
 }}
 """
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=config.GEMINI_PRO_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(

@@ -27,8 +27,9 @@ class JobManager:
         self._lock = asyncio.Lock()
 
     async def init_db(self):
-        """No-op kept for backward compatibility; database initialized in core/database.py."""
-        pass
+        """Initializes SQLite tables including content_cache via core/database.py."""
+        from backend.core.database import init_database
+        await init_database()
 
     async def create_job(self, request: IngestRequest) -> str:
         job_id = f"job_{uuid.uuid4().hex[:10]}"

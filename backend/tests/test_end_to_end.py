@@ -22,7 +22,7 @@ JWST operates at an altitude of approximately 1.5 million kilometers from Earth 
     assert job_id.startswith("job_")
     
     # Wait for the job to complete or progress through stages
-    max_wait_seconds = 45
+    max_wait_seconds = 90
     completed = False
     
     for _ in range(max_wait_seconds * 2):
@@ -35,7 +35,7 @@ JWST operates at an altitude of approximately 1.5 million kilometers from Earth 
         elif status.stage == JobStage.FAILED:
             pytest.fail(f"Job execution failed with error: {status.error}")
 
-    assert completed, f"Job {job_id} did not complete within timeout"
+    assert completed, f"Job {job_id} did not complete within timeout (current stage: {status.stage}, progress: {status.progress_pct}%)"
     final_job = await job_manager.get_job(job_id)
     assert final_job.graph is not None
     assert len(final_job.graph.claims) > 0

@@ -15,6 +15,8 @@ from backend.models.schemas import (
 )
 from backend.agents.workflow_engine import WorkflowStep
 from backend.utils.json_parser import clean_and_parse_json
+from backend.services.cache_service import cache_service
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,8 @@ Respond strictly in JSON matching:
 """
         turns: List[DialogueTurn] = []
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=config.GEMINI_PRO_MODEL,
                 contents=script_prompt,
                 config=types.GenerateContentConfig(
@@ -124,31 +127,52 @@ Respond strictly in JSON matching:
     def _synthesize_cloud_tts(
         self,
         turns: List[DialogueTurn],
-        language: str,
-        filename: str
-    ) -> tuple[float, List[AudioSegment]]:
-        """Synthesize audio turns with Cloud TTS and compute timestamps."""
+        language: str
+    ) -> tuple[str, float, List[AudioSegment]]:
+        """Synthesize audio turns with Cloud TTS or reuse cached MP3 asset."""
+        # Voice selection
+        if language.startswith("hi"):
+            host_voice = config.VOICE_HINDI_HOST
+            analyst_voice = config.VOICE_HINDI_ANALYST
+            lang_code = "hi-IN"
+        elif language.startswith("mr"):
+            host_voice = config.VOICE_MARATHI_HOST
+            analyst_voice = config.VOICE_MARATHI_ANALYST
+            lang_code = "mr-IN"
+        else:
+            host_voice = config.VOICE_HOST
+            analyst_voice = config.VOICE_ANALYST
+            lang_code = "en-US"
+
+        # Deterministic SHA-256 fingerprint for audio dialogue
+        audio_hash = cache_service.compute_audio_hash(turns, language, host_voice, analyst_voice)
+        filename = f"briefing_{audio_hash}.mp3"
         output_path = config.AUDIO_OUTPUT_DIR / filename
         segments: List[AudioSegment] = []
         current_time = 0.0
 
+        # 1. Check if cached audio file already exists
+        if output_path.exists() and output_path.stat().st_size > 500:
+            logger.info(f"⚡ Audio cache HIT for hash '{audio_hash}'. Reusing {filename}.")
+            for turn in turns:
+                words = len(turn.text.split())
+                est_duration = max(2.0, round(words / 2.3, 2))
+                end_time = round(current_time + est_duration, 2)
+                segments.append(
+                    AudioSegment(
+                        speaker=turn.speaker,
+                        text=turn.text,
+                        start_time=current_time,
+                        end_time=end_time
+                    )
+                )
+                current_time = end_time
+            return filename, current_time, segments
+
+        # 2. Synthesis via Cloud TTS
         try:
             tts_client = texttospeech.TextToSpeechClient()
-            combined_audio = io_bytes = bytearray()
-
-            # Voice selection
-            if language.startswith("hi"):
-                host_voice = config.VOICE_HINDI_HOST
-                analyst_voice = config.VOICE_HINDI_ANALYST
-                lang_code = "hi-IN"
-            elif language.startswith("mr"):
-                host_voice = config.VOICE_MARATHI_HOST
-                analyst_voice = config.VOICE_MARATHI_ANALYST
-                lang_code = "mr-IN"
-            else:
-                host_voice = config.VOICE_HOST
-                analyst_voice = config.VOICE_ANALYST
-                lang_code = "en-US"
+            combined_audio = bytearray()
 
             for turn in turns:
                 speaker = turn.speaker
@@ -173,7 +197,6 @@ Respond strictly in JSON matching:
 
                 combined_audio.extend(response.audio_content)
 
-                # Estimate segment duration
                 words = len(text.split())
                 est_duration = max(2.0, round(words / 2.3, 2))
                 end_time = round(current_time + est_duration, 2)
@@ -189,28 +212,26 @@ Respond strictly in JSON matching:
                 current_time = end_time
 
             output_path.write_bytes(combined_audio)
-            logger.info(f"Successfully generated Cloud TTS audio: {output_path} ({len(combined_audio)} bytes)")
-            return current_time, segments
+            logger.info(f"Successfully generated and cached Cloud TTS audio: {output_path} ({len(combined_audio)} bytes)")
+            return filename, current_time, segments
 
         except Exception as e:
             logger.warning(f"Google Cloud TTS synthesis fallback ({e}). Generating player placeholder.")
             output_path.write_bytes(b"\xFF\xFB\x90\x44" + b"\x00" * 2048)
             for turn in turns:
-                speaker = turn.speaker
-                text = turn.text
-                words = len(text.split())
+                words = len(turn.text.split())
                 est_duration = max(2.5, round(words / 2.2, 2))
                 end_time = round(current_time + est_duration, 2)
                 segments.append(
                     AudioSegment(
-                        speaker=speaker,
-                        text=text,
+                        speaker=turn.speaker,
+                        text=turn.text,
                         start_time=current_time,
                         end_time=end_time
                     )
                 )
                 current_time = end_time
-            return current_time, segments
+            return filename, current_time, segments
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         graph: ContentGraph = context.get("content_graph")
@@ -224,8 +245,11 @@ Respond strictly in JSON matching:
         logger.info(f"Generating dialogue script for '{graph.title}'...")
         turns = await self._generate_dialogue_script(graph, lens, persona, language)
 
-        filename = f"briefing_{uuid.uuid4().hex[:8]}.mp3"
-        duration, segments = self._synthesize_cloud_tts(turns, language, filename)
+        filename, duration, segments = await asyncio.to_thread(
+            self._synthesize_cloud_tts,
+            turns,
+            language
+        )
 
         briefing = AudioBriefing(
             title=f"Audio Briefing: {graph.title}",

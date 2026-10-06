@@ -39,6 +39,7 @@ export interface ContentGraph {
   claims: Claim[];
   trust_score: number;
   raw_content_preview?: string;
+  is_cached?: boolean;
 }
 
 export interface AudioSegment {
