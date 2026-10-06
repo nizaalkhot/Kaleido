@@ -7,6 +7,7 @@ from google.genai import types
 from backend import config
 from backend.models.schemas import DropOffInsight, ReaderEvent
 from backend.services.bigquery_service import bigquery_service
+from backend.utils.json_parser import clean_and_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ Respond strictly in valid JSON matching:
                     response_mime_type="application/json"
                 )
             )
-            data = json.loads(response.text)
+            data = clean_and_parse_json(response.text, default={})
             diagnosis = data.get("diagnosis", "High friction detected in technical explanation.")
             rewrite = data.get("recommended_rewrite", f"Streamlined version of {title}: {summary[:200]}")
         except Exception as e:

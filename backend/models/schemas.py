@@ -160,3 +160,12 @@ class PublisherMetrics(BaseModel):
     credits_used: int = 340
     estimated_cost_savings: str = "$4,200/mo"
     active_lens: str = "news"
+
+class OptimizeRequest(BaseModel):
+    job_id: str
+    target_section: int
+
+class GroundedQARequest(BaseModel):
+    job_id: str
+    question: str
+

@@ -8,20 +8,16 @@ import {
   FileText,
   Upload,
   Play,
-  RotateCcw,
   CheckCircle2,
-  Clock,
   Radio,
   ShieldCheck,
-  ChevronRight,
-  Code,
   Zap,
   BookOpen,
-  Newspaper,
   HelpCircle,
   BarChart3,
   ArrowRightLeft,
-  CreditCard
+  Code,
+  Newspaper
 } from "lucide-react";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { TrustInspector } from "@/components/TrustInspector";
@@ -36,12 +32,11 @@ import {
   LensType,
   PersonaType,
   JobStatus,
-  SampleItem,
-  ContentGraph,
-  AudioBriefing
+  SampleItem
 } from "@/types";
+import { api } from "@/services/api";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = api.getBackendUrl();
 
 export default function Home() {
   const [lens, setLens] = useState<LensType>("news");
@@ -69,13 +64,11 @@ export default function Home() {
 
   // Fetch backend health and demo samples on load
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/health`)
-      .then((res) => res.json())
+    api.checkHealth()
       .then(() => setBackendHealthy(true))
       .catch(() => setBackendHealthy(false));
 
-    fetch(`${BACKEND_URL}/api/samples`)
-      .then((res) => res.json())
+    api.getSamples()
       .then((data) => setSamples(data))
       .catch((err) => console.warn("Failed to load samples:", err));
   }, []);
@@ -84,7 +77,7 @@ export default function Home() {
   useEffect(() => {
     if (!currentJobId) return;
 
-    const eventSource = new EventSource(`${BACKEND_URL}/api/jobs/${currentJobId}/stream`);
+    const eventSource = new EventSource(`${api.getBackendUrl()}/api/jobs/${currentJobId}/stream`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -144,26 +137,15 @@ export default function Home() {
     setCurrentJobId(null);
 
     try {
-      const payload = {
+      const data = await api.startIngestion({
         input_type: inputType,
         content: inputType === "url" ? undefined : textContent,
         url: inputType === "url" ? urlInput : undefined,
         lens,
         persona,
         language,
-      };
-
-      const res = await fetch(`${BACKEND_URL}/api/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error(`Ingest failed: ${res.statusText}`);
-      }
-
-      const data = await res.json();
       setCurrentJobId(data.job_id);
     } catch (err: any) {
       alert(`Error starting pipeline: ${err.message}`);

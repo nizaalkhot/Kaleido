@@ -11,6 +11,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { StoryDeck } from "@/types";
+import { api } from "@/services/api";
 
 interface StoryCardDeckProps {
   storyDeck: StoryDeck;
@@ -31,18 +32,14 @@ export const StoryCardDeck: React.FC<StoryCardDeckProps> = ({
     if (currentIndex + 1 < cards.length) {
       const nextIdx = currentIndex + 1;
       setCurrentIndex(nextIdx);
-      // Fire engagement telemetry
-      fetch(`${backendBaseUrl}/api/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_id: jobId,
-          format_type: "story",
-          section_index: nextIdx,
-          time_spent_ms: 4000,
-          completed: nextIdx === cards.length - 1,
-          dropped_off: false,
-        }),
+      // Fire engagement telemetry via centralized API service
+      api.recordEvent({
+        job_id: jobId,
+        format_type: "story",
+        section_index: nextIdx,
+        time_spent_ms: 4000,
+        completed: nextIdx === cards.length - 1,
+        dropped_off: false,
       }).catch(() => {});
     }
   };

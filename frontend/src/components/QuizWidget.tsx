@@ -12,6 +12,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { Quiz } from "@/types";
+import { api } from "@/services/api";
 
 interface QuizWidgetProps {
   quiz: Quiz;
@@ -42,20 +43,16 @@ export const QuizWidget: React.FC<QuizWidgetProps> = ({
       setScore((s) => s + 1);
     }
 
-    // Fire telemetry event
-    fetch(`${backendBaseUrl}/api/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        job_id: jobId,
-        persona: quiz.target_persona,
-        language: quiz.language,
-        format_type: "quiz",
-        section_index: currentIndex,
-        time_spent_ms: 3200,
-        completed: isCorrect,
-        dropped_off: false,
-      }),
+    // Fire telemetry event via centralized API service
+    api.recordEvent({
+      job_id: jobId,
+      persona: quiz.target_persona,
+      language: quiz.language,
+      format_type: "quiz",
+      section_index: currentIndex,
+      time_spent_ms: 3200,
+      completed: isCorrect,
+      dropped_off: false,
     }).catch(() => {});
   };
 

@@ -13,6 +13,7 @@ import {
   Zap
 } from "lucide-react";
 import { DropOffInsight } from "@/types";
+import { api } from "@/services/api";
 
 interface InsightsDrawerProps {
   jobId: string;
@@ -35,27 +36,18 @@ export const InsightsDrawer: React.FC<InsightsDrawerProps> = ({
   useEffect(() => {
     if (isOpen && jobId) {
       setLoading(true);
-      fetch(`${backendBaseUrl}/api/insights/${jobId}`)
-        .then((res) => res.json())
+      api.getJobInsights(jobId)
         .then((data) => setInsight(data))
         .catch((err) => console.warn("Failed to load insights:", err))
         .finally(() => setLoading(false));
     }
-  }, [isOpen, jobId, backendBaseUrl]);
+  }, [isOpen, jobId]);
 
   const handleRegenerateVariant = async () => {
     if (!insight) return;
     setIsOptimizing(true);
     try {
-      const res = await fetch(`${backendBaseUrl}/api/optimize-variant`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_id: jobId,
-          target_section: insight.high_drop_off_section,
-        }),
-      });
-      const data = await res.json();
+      const data = await api.optimizeVariant(jobId, insight.high_drop_off_section);
       setOptimizedVariant(data.new_variant_text);
     } catch (err) {
       alert("Error regenerating variant.");

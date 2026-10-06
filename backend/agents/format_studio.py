@@ -14,6 +14,7 @@ from backend.models.schemas import (
 )
 from backend.agents.workflow_engine import WorkflowStep, ParallelWorkflow
 from backend.agents.audio_pipeline import AudioGeneratorStep
+from backend.utils.json_parser import clean_and_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ Respond strictly in valid JSON matching:
                     response_mime_type="application/json"
                 )
             )
-            data = json.loads(response.text)
+            data = clean_and_parse_json(response.text, default={})
             questions = [QuizQuestion(**q) for q in data.get("questions", [])]
             quiz = Quiz(
                 title=data.get("title", f"{graph.title} Quiz"),
@@ -177,7 +178,7 @@ Respond strictly in valid JSON matching:
                     response_mime_type="application/json"
                 )
             )
-            data = json.loads(response.text)
+            data = clean_and_parse_json(response.text, default={})
             cards = [StoryCard(**c) for c in data.get("cards", [])]
             deck = StoryDeck(
                 title=data.get("title", f"{graph.title} Story Cards"),

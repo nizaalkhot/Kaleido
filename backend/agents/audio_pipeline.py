@@ -14,6 +14,7 @@ from backend.models.schemas import (
     AudioBriefing
 )
 from backend.agents.workflow_engine import WorkflowStep
+from backend.utils.json_parser import clean_and_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ Respond strictly in JSON matching:
                     response_mime_type="application/json"
                 )
             )
-            data = json.loads(response.text)
+            data = clean_and_parse_json(response.text, default={})
             turns = [DialogueTurn(**t) for t in data.get("turns", [])]
         except Exception as e:
             logger.warning(f"Gemini script generation fallback: {e}")

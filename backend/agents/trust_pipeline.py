@@ -7,6 +7,7 @@ from google.genai import types
 from backend import config
 from backend.models.schemas import ContentGraph, Claim, VerificationStatus
 from backend.agents.workflow_engine import WorkflowStep
+from backend.utils.json_parser import clean_and_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ Respond strictly in valid JSON matching this structure:
                     )
                 )
 
-            data = json.loads(response.text)
+            data = clean_and_parse_json(response.text, default={})
             for item in data.get("evaluations", []):
                 eval_map[item.get("id")] = item
         except Exception as e:

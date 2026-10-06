@@ -21,6 +21,7 @@ from backend.models.schemas import (
     VerificationStatus
 )
 from backend.agents.workflow_engine import WorkflowStep
+from backend.utils.json_parser import clean_and_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -178,8 +179,10 @@ Respond strictly in valid JSON matching this structure:
                     response_mime_type="application/json"
                 )
             )
-            import json
-            data = json.loads(response.text)
+            parsed = clean_and_parse_json(response.text)
+            if not parsed or not isinstance(parsed, dict):
+                raise ValueError("Parsed Content Graph response is empty or invalid")
+            data = parsed
         except Exception as e:
             logger.error(f"Gemini Content Graph generation error: {e}. Using deterministic parsing fallback.")
             # Deterministic fallback parsing

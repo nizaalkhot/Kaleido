@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List
-import aiosqlite
 from google.cloud import bigquery
 
-from backend import config
+from backend.core import config
+from backend.core.database import get_db_connection
 from backend.models.schemas import ReaderEvent
 
 logger = logging.getLogger(__name__)
@@ -56,23 +56,8 @@ class BigQueryTelemetryService:
             self._bq_available = False
 
     async def init_sqlite_fallback(self):
-        """Ensure local SQLite table exists for offline fallback."""
-        async with aiosqlite.connect(config.DATABASE_PATH) as db:
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS reader_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    job_id TEXT,
-                    persona TEXT,
-                    language TEXT,
-                    format_type TEXT,
-                    section_index INTEGER,
-                    time_spent_ms INTEGER,
-                    completed BOOLEAN,
-                    dropped_off BOOLEAN,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            await db.commit()
+        """No-op kept for backward compatibility; table initialized in core/database.py."""
+        pass
 
     async def record_event(self, event: ReaderEvent) -> Dict[str, Any]:
         """Record reader engagement event to BigQuery with SQLite fallback."""
@@ -101,7 +86,7 @@ class BigQueryTelemetryService:
 
         # Always persist to SQLite for local fast querying & safety
         try:
-            async with aiosqlite.connect(config.DATABASE_PATH) as db:
+            async with get_db_connection() as db:
                 await db.execute("""
                     INSERT INTO reader_events (job_id, persona, language, format_type, section_index, time_spent_ms, completed, dropped_off)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -125,7 +110,7 @@ class BigQueryTelemetryService:
         """Query aggregated events for a job."""
         results = []
         try:
-            async with aiosqlite.connect(config.DATABASE_PATH) as db:
+            async with get_db_connection() as db:
                 async with db.execute("""
                     SELECT section_index, COUNT(*) as total_views,
                            SUM(CASE WHEN dropped_off = 1 THEN 1 ELSE 0 END) as drop_offs,

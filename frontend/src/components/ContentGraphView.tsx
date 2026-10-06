@@ -17,6 +17,7 @@ import {
   Target
 } from "lucide-react";
 import { ContentGraph } from "@/types";
+import { api } from "@/services/api";
 
 interface ContentGraphViewProps {
   graph: ContentGraph;
@@ -53,13 +54,7 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
     setIsAsking(true);
 
     try {
-      const res = await fetch(`${backendBaseUrl}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_id: jobId, question: promptText }),
-      });
-      if (!res.ok) throw new Error("Grounded Q&A failed");
-      const data = await res.json();
+      const data = await api.sendGroundedChat(jobId, promptText);
       setChatHistory((prev) => [...prev, { q: promptText, a: data.answer }]);
     } catch (err) {
       setChatHistory((prev) => [
