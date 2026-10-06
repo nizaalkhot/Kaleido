@@ -83,14 +83,17 @@ class JobManager:
 
         try:
             while True:
-                msg = await queue.get()
-                yield f"data: {msg}\n\n"
                 try:
-                    data = json.loads(msg)
-                    if data.get("stage") in (JobStage.COMPLETED.value, JobStage.FAILED.value):
-                        break
-                except Exception:
-                    pass
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"data: {msg}\n\n"
+                    try:
+                        data = json.loads(msg)
+                        if data.get("stage") in (JobStage.COMPLETED.value, JobStage.FAILED.value):
+                            break
+                    except Exception:
+                        pass
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
         finally:
             async with self._lock:
                 if job_id in self._listeners and queue in self._listeners[job_id]:

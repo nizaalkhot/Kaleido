@@ -17,11 +17,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(briefing.duration_seconds || 0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [useSpeechFallback, setUseSpeechFallback] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const audioSrc = briefing.audio_url.startsWith("http")
     ? briefing.audio_url
     : `${backendBaseUrl}${briefing.audio_url}`;
+
+  // Stop any ongoing speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -34,32 +45,100 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       }
     };
     const handleEnded = () => setIsPlaying(false);
+    const handleError = () => {
+      console.warn("Audio file load/decode failed, enabling Web Speech API fallback.");
+      setUseSpeechFallback(true);
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
 
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
     };
-  }, []);
+  }, [audioSrc]);
+
+  // Web Speech API fallback turn-by-turn reader
+  const playWebSpeechTurns = (startIndex = 0) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+
+    const turns = briefing.transcript || [];
+    if (startIndex >= turns.length) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      return;
+    }
+
+    const currentTurn = turns[startIndex];
+    const utterance = new SpeechSynthesisUtterance(currentTurn.text);
+    speechUtteranceRef.current = utterance;
+    utterance.rate = playbackRate;
+
+    // Select suitable voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const isHost = currentTurn.speaker.toLowerCase() === "host";
+    const selectedVoice = voices.find((v) => 
+      isHost ? v.name.includes("Male") || v.name.includes("David") || v.name.includes("Guy")
+             : v.name.includes("Female") || v.name.includes("Zira") || v.name.includes("Jenny")
+    );
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    setCurrentTime(currentTurn.start_time);
+    setIsPlaying(true);
+
+    utterance.onend = () => {
+      if (startIndex + 1 < turns.length) {
+        playWebSpeechTurns(startIndex + 1);
+      } else {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      }
+    };
+
+    utterance.onerror = () => {
+      setIsPlaying(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   const togglePlay = () => {
+    if (useSpeechFallback) {
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
+      } else {
+        playWebSpeechTurns(0);
+      }
+      return;
+    }
+
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => console.warn("Audio play prevented:", e));
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((e) => {
+          console.warn("Audio element play error, falling back to Web Speech API:", e);
+          setUseSpeechFallback(true);
+          playWebSpeechTurns(0);
+        });
     }
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
     setCurrentTime(time);
-    if (audioRef.current) {
+    if (audioRef.current && !useSpeechFallback) {
       audioRef.current.currentTime = time;
     }
   };
@@ -74,10 +153,23 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const jumpToSegment = (startTime: number) => {
+    setCurrentTime(startTime);
+    const turnIndex = briefing.transcript.findIndex(
+      (s) => Math.abs(s.start_time - startTime) < 0.1
+    );
+
+    if (useSpeechFallback) {
+      playWebSpeechTurns(turnIndex >= 0 ? turnIndex : 0);
+      return;
+    }
+
     if (audioRef.current) {
       audioRef.current.currentTime = startTime;
       if (!isPlaying) {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {
+          setUseSpeechFallback(true);
+          playWebSpeechTurns(turnIndex >= 0 ? turnIndex : 0);
+        });
       }
     }
   };
@@ -123,6 +215,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <div className="flex items-center gap-3.5">
           <button
             onClick={togglePlay}
+            aria-label={isPlaying ? "Pause audio" : "Play audio"}
+            data-testid="audio-play-button"
             className="tactile-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-zinc-950 font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-300"
           >
             {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}

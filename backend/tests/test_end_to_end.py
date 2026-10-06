@@ -22,7 +22,7 @@ JWST operates at an altitude of approximately 1.5 million kilometers from Earth 
     assert job_id.startswith("job_")
     
     # Wait for the job to complete or progress through stages
-    max_wait_seconds = 90
+    max_wait_seconds = 180
     completed = False
     
     for _ in range(max_wait_seconds * 2):

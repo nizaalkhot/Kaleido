@@ -77,6 +77,21 @@ export default function Home() {
   useEffect(() => {
     if (!currentJobId) return;
 
+    let isMounted = true;
+    const pollInterval = setInterval(async () => {
+      if (!isMounted) return;
+      try {
+        const current = await api.getJobDetails(currentJobId);
+        setJobStatus(current);
+        if (current.stage === "completed" || current.stage === "failed") {
+          setIsProcessing(false);
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        // ignore transient fetch error during compilation
+      }
+    }, 2000);
+
     const eventSource = new EventSource(`${api.getBackendUrl()}/api/jobs/${currentJobId}/stream`);
 
     eventSource.onmessage = (event) => {
@@ -86,6 +101,7 @@ export default function Home() {
 
         if (update.stage === "completed" || update.stage === "failed") {
           setIsProcessing(false);
+          clearInterval(pollInterval);
           eventSource.close();
         }
       } catch (e) {
@@ -94,11 +110,12 @@ export default function Home() {
     };
 
     eventSource.onerror = () => {
-      console.warn("SSE connection closed or errored.");
-      eventSource.close();
+      console.warn("SSE connection closed or errored; continuing with polling.");
     };
 
     return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
       eventSource.close();
     };
   }, [currentJobId]);
