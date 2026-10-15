@@ -5,7 +5,16 @@ import {
   PublisherMetrics,
   IngestType,
   LensType,
-  PersonaType
+  PersonaType,
+  GroundedCitation,
+  PlanDefinition,
+  APIKeyInfo,
+  UsageSummary,
+  ROICalculatorParams,
+  ROICalculatorResult,
+  SponsorCampaign,
+  SponsorEarningsSummary,
+  EmbedDomain
 } from "@/types";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -23,6 +32,8 @@ export interface GroundedChatResponse {
   question: string;
   answer: string;
   trust_score: number;
+  citations?: GroundedCitation[];
+  suggested_questions?: string[];
 }
 
 export interface OptimizedVariantResponse {
@@ -122,6 +133,114 @@ export const api = {
       body: JSON.stringify({ job_id: jobId, question }),
     });
     if (!res.ok) throw new Error("Chat request failed");
+    return res.json();
+  },
+
+  // -----------------------------------------------------------
+  // Billing & Monetization API
+  // -----------------------------------------------------------
+
+  async getPlans(): Promise<Record<string, PlanDefinition>> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/plans`);
+    if (!res.ok) throw new Error("Failed to load pricing plans");
+    return res.json();
+  },
+
+  async getUsageSummary(): Promise<UsageSummary> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/usage`);
+    if (!res.ok) throw new Error("Failed to load usage summary");
+    return res.json();
+  },
+
+  async getAPIKeys(): Promise<APIKeyInfo[]> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/keys`);
+    if (!res.ok) throw new Error("Failed to fetch API keys");
+    return res.json();
+  },
+
+  async createAPIKey(name: string, tier: string): Promise<APIKeyInfo> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/keys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, tier }),
+    });
+    if (!res.ok) throw new Error("Failed to create API key");
+    return res.json();
+  },
+
+  async revokeAPIKey(keyId: string): Promise<{ status: string }> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/keys/${keyId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to revoke API key");
+    return res.json();
+  },
+
+  async checkoutPlan(planTier: string, billingCycle: string): Promise<any> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan_tier: planTier, billing_cycle: billingCycle }),
+    });
+    if (!res.ok) throw new Error("Checkout failed");
+    return res.json();
+  },
+
+  async topupCredits(credits: number, costUsd: number): Promise<any> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/topup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credits, cost_usd: costUsd }),
+    });
+    if (!res.ok) throw new Error("Credit top-up failed");
+    return res.json();
+  },
+
+  async calculateROI(params: ROICalculatorParams): Promise<ROICalculatorResult> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/roi-calculator`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) throw new Error("ROI calculation failed");
+    return res.json();
+  },
+
+  async getSponsorCampaigns(): Promise<SponsorCampaign[]> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/sponsors`);
+    if (!res.ok) throw new Error("Failed to load sponsor campaigns");
+    return res.json();
+  },
+
+  async recordSponsorImpression(campaignId: string, jobId: string, formatType: string): Promise<any> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/sponsors/impression`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaign_id: campaignId, job_id: jobId, format_type: formatType }),
+    });
+    if (!res.ok) throw new Error("Impression recording failed");
+    return res.json();
+  },
+
+  async getSponsorEarnings(): Promise<SponsorEarningsSummary> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/sponsors/earnings`);
+    if (!res.ok) throw new Error("Failed to fetch sponsor earnings");
+    return res.json();
+  },
+
+  async getEmbedDomains(): Promise<EmbedDomain[]> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/embed/domains`);
+    if (!res.ok) throw new Error("Failed to load embed domains");
+    return res.json();
+  },
+
+  async registerEmbedDomain(domain: string, theme: string = "dark"): Promise<EmbedDomain> {
+    const res = await fetch(`${BACKEND_URL}/api/billing/embed/domains`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain, theme, is_premium: true }),
+    });
+    if (!res.ok) throw new Error("Failed to register embed domain");
     return res.json();
   },
 };

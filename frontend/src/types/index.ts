@@ -97,6 +97,41 @@ export type JobStage =
   | "completed"
   | "failed";
 
+export interface MetricFlashcard {
+  id: string;
+  metric: string;
+  label: string;
+  significance: string;
+  verified_source_claim: string;
+  claim_id?: string;
+}
+
+export interface ExecutiveBrief {
+  title: string;
+  executive_summary: string;
+  strategic_takeaways: string[];
+  market_catalysts: string[];
+  key_risks_and_limitations: string[];
+  action_items: string[];
+  flashcards: MetricFlashcard[];
+}
+
+export interface GroundedCitation {
+  claim_id: string;
+  statement: string;
+  quote?: string;
+  confidence: number;
+  external_sources: string[];
+}
+
+export interface GroundedQAResponse {
+  question: string;
+  answer: string;
+  trust_score: number;
+  citations?: GroundedCitation[];
+  suggested_questions?: string[];
+}
+
 export interface JobStatus {
   job_id: string;
   stage: JobStage;
@@ -106,6 +141,7 @@ export interface JobStatus {
   audio?: AudioBriefing;
   quiz?: Quiz;
   story_deck?: StoryDeck;
+  executive_brief?: ExecutiveBrief;
   error?: string;
 }
 
@@ -134,4 +170,109 @@ export interface PublisherMetrics {
   credits_used: number;
   estimated_cost_savings: string;
   active_lens: string;
+}
+
+// -------------------------------------------------------------
+// Billing & Revenue Architecture Types
+// -------------------------------------------------------------
+
+export type PlanTier = "free" | "starter" | "professional" | "enterprise";
+
+export interface PlanDefinition {
+  id: PlanTier;
+  name: string;
+  price_monthly_usd: number;
+  price_annual_usd: number;
+  monthly_credits: number;
+  features: string[];
+  max_languages: number;
+  supported_formats: string[];
+  has_self_healing: boolean;
+  has_voice_assistant: boolean;
+  has_sponsor_rev_share: boolean;
+  rev_share_pct: number;
+  support_level: string;
+}
+
+export interface APIKeyInfo {
+  id: string;
+  org_id: string;
+  key_prefix: string;
+  name: string;
+  tier: PlanTier;
+  credits_remaining: number;
+  credits_total: number;
+  rate_limit_rpm: number;
+  is_active: boolean;
+  created_at: string;
+  full_key?: string;
+}
+
+export interface UsageSummary {
+  org_id: string;
+  tier: PlanTier;
+  credits_total: number;
+  credits_remaining: number;
+  credits_consumed: number;
+  burn_rate_daily: number;
+  estimated_depletion_days: number;
+  operation_breakdown: Record<string, number>;
+  recent_transactions: Array<{
+    operation: string;
+    credits: number;
+    job_id?: string;
+    timestamp: string;
+  }>;
+}
+
+export interface ROICalculatorParams {
+  articles_per_month: number;
+  manual_cost_per_article: number;
+  languages_count: number;
+  formats_count: number;
+  monthly_readers: number;
+  estimated_cpm: number;
+}
+
+export interface ROICalculatorResult {
+  articles_per_month: number;
+  manual_monthly_cost: number;
+  kaleido_monthly_cost: number;
+  monthly_cost_savings: number;
+  annual_cost_savings: number;
+  time_saved_hours_monthly: number;
+  estimated_sponsor_revenue_monthly: number;
+  net_monthly_gain: number;
+  roi_percentage: number;
+  break_even_days: number;
+}
+
+export interface SponsorCampaign {
+  id: string;
+  brand: string;
+  headline: string;
+  creative_text: string;
+  cta_url: string;
+  cta_label: string;
+  cpm_bid: number;
+  matching_topics: string[];
+  sponsor_badge: string;
+  is_active: boolean;
+}
+
+export interface SponsorEarningsSummary {
+  total_impressions: number;
+  gross_ad_revenue_usd: number;
+  publisher_share_usd: number;
+  kaleido_share_usd: number;
+  active_campaigns: number;
+  top_performing_format: string;
+}
+
+export interface EmbedDomain {
+  id: string;
+  domain: string;
+  theme: string;
+  is_premium: boolean;
+  impressions_total: number;
 }

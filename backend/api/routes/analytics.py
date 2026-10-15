@@ -32,7 +32,7 @@ async def get_job_insights(job_id: str):
 
 @router.post("/optimize-variant")
 async def optimize_variant(req: OptimizeRequest):
-    """Regenerates an optimized variant based on insights feedback."""
+    """Regenerates an optimized variant based on insights feedback and patches the job."""
     job = await job_manager.get_job(req.job_id)
     if not job or not job.graph:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -43,6 +43,13 @@ async def optimize_variant(req: OptimizeRequest):
         summary=job.graph.summary,
         persona="general"
     )
+
+    # Patch the active story card or content section with the optimized rewrite
+    if job.story_deck and job.story_deck.cards:
+        idx = min(req.target_section, len(job.story_deck.cards) - 1)
+        job.story_deck.cards[idx].key_takeaway = f"⚡ [AI Self-Healed Variant]: {insight.recommended_rewrite}"
+        from backend.db.repositories.job_repository import job_repository
+        await job_repository.save_job(job)
 
     return {
         "job_id": req.job_id,

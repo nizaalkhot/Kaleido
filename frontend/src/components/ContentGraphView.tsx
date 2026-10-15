@@ -16,8 +16,9 @@ import {
   Zap,
   Target
 } from "lucide-react";
-import { ContentGraph } from "@/types";
+import { ContentGraph, GroundedCitation } from "@/types";
 import { api } from "@/services/api";
+import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 interface ContentGraphViewProps {
   graph: ContentGraph;
@@ -40,14 +41,68 @@ const CATEGORY_STYLES: Record<string, string> = {
   location: "bg-teal-500/15 text-teal-300 border-teal-500/30",
 };
 
+interface ChatMessage {
+  q: string;
+  a: string;
+  citations?: GroundedCitation[];
+}
+
 export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
   graph,
   jobId,
   backendBaseUrl = "http://localhost:8000",
 }) => {
   const [question, setQuestion] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string }>>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isAsking, setIsAsking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([
+    "Explain this in simpler terms for a beginner.",
+    "Why should I care about this development? What is its real-world impact?",
+    "What are the key verified numbers and metrics reported?"
+  ]);
+
+  const speakText = (text: string) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.name.includes("Female") || v.name.includes("Jenny") || v.name.includes("Google"));
+      if (voice) utterance.voice = voice;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const startVoiceInput = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRec) {
+      alert("Speech recognition is not supported in this browser. Please type your query.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = graph.language.startsWith("hi") ? "hi-IN" : "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      setIsListening(true);
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setQuestion(transcript);
+        setIsListening(false);
+        executeAsk(transcript);
+      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognition.start();
+    } catch (e) {
+      setIsListening(false);
+    }
+  };
 
   const executeAsk = async (promptText: string) => {
     if (!promptText.trim() || isAsking) return;
@@ -55,7 +110,16 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
 
     try {
       const data = await api.sendGroundedChat(jobId, promptText);
-      setChatHistory((prev) => [...prev, { q: promptText, a: data.answer }]);
+      setChatHistory((prev) => [
+        ...prev,
+        { q: promptText, a: data.answer, citations: data.citations }
+      ]);
+      if (data.suggested_questions && data.suggested_questions.length > 0) {
+        setSuggestedQuestions(data.suggested_questions);
+      }
+      if (autoSpeak) {
+        speakText(data.answer);
+      }
     } catch (err) {
       setChatHistory((prev) => [
         ...prev,
@@ -156,53 +220,80 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
         </div>
       )}
 
-      {/* Grounded Q&A Assistant with Adaptive Quick Actions */}
+      {/* Grounded Q&A Assistant with Voice & Citation Badges */}
       <div className="rounded-xl border border-white/5 bg-zinc-950/70 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5 text-cyan-400" /> Grounded Q&A Assistant
+            <MessageSquare className="h-3.5 w-3.5 text-cyan-400" /> Grounded Voice & Chat Assistant
           </span>
-          <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-            <CheckCircle2 className="h-2.5 w-2.5" /> 100% Fact-Checked Answers
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAutoSpeak(!autoSpeak)}
+              className={`tactile-btn flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono border ${
+                autoSpeak
+                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+                  : "bg-zinc-900 text-zinc-400 border-white/5 hover:text-zinc-200"
+              }`}
+              title="Toggle automatic spoken voice readout of answers"
+            >
+              {autoSpeak ? <Volume2 className="h-3 w-3 text-cyan-400" /> : <VolumeX className="h-3 w-3" />}
+              <span>Voice Out</span>
+            </button>
+            <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+              <CheckCircle2 className="h-2.5 w-2.5" /> 100% Grounded
+            </span>
+          </div>
         </div>
 
-        {/* Quick Action Chips */}
+        {/* Dynamic Suggested Question Chips */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            disabled={isAsking}
-            onClick={() => handleQuickPrompt("Explain this in simpler terms for a beginner.")}
-            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
-          >
-            <Zap className="h-3 w-3 text-amber-400" /> Simpler
-          </button>
-          <button
-            type="button"
-            disabled={isAsking}
-            onClick={() => handleQuickPrompt("Why should I care about this development? What is its real-world impact?")}
-            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
-          >
-            <Target className="h-3 w-3 text-cyan-400" /> Why should I care?
-          </button>
-          <button
-            type="button"
-            disabled={isAsking}
-            onClick={() => handleQuickPrompt("What are the key verified numbers and metrics reported?")}
-            className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800"
-          >
-            <Sparkles className="h-3 w-3 text-emerald-400" /> Key Metrics
-          </button>
+          {suggestedQuestions.map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              disabled={isAsking}
+              onClick={() => handleQuickPrompt(chip)}
+              className="tactile-btn inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-cyan-500/40 hover:bg-zinc-800 text-left"
+            >
+              <Zap className="h-3 w-3 text-cyan-400 shrink-0" />
+              <span className="truncate max-w-[240px]">{chip}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Chat responses */}
+        {/* Chat responses with citations */}
         {chatHistory.length > 0 && (
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs scrollbar-thin">
+          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 text-xs scrollbar-thin">
             {chatHistory.map((item, idx) => (
               <div key={idx} className="space-y-1">
-                <div className="font-mono text-cyan-300 text-[11px]">Q: {item.q}</div>
-                <div className="text-zinc-200 bg-zinc-900/90 p-2.5 rounded-xl border border-white/5 text-[11px] leading-relaxed">
-                  {item.a}
+                <div className="font-mono text-cyan-300 text-[11px] flex items-center justify-between">
+                  <span>Q: {item.q}</span>
+                  <button
+                    onClick={() => speakText(item.a)}
+                    className="text-zinc-500 hover:text-cyan-400 p-0.5"
+                    title="Speak answer aloud"
+                  >
+                    <Volume2 className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="text-zinc-200 bg-zinc-900/90 p-3 rounded-xl border border-white/5 text-[11px] leading-relaxed space-y-2">
+                  <p>{item.a}</p>
+                  {item.citations && item.citations.length > 0 && (
+                    <div className="pt-2 border-t border-white/5 flex flex-wrap gap-1.5">
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase">Citations:</span>
+                      {item.citations.map((c, cIdx) => (
+                        <span
+                          key={cIdx}
+                          title={c.quote || c.statement}
+                          className="inline-flex items-center gap-1 rounded bg-cyan-950/50 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-mono text-cyan-300"
+                        >
+                          <Target className="h-2.5 w-2.5" />
+                          <span>{c.claim_id}: {c.statement.slice(0, 32)}...</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -210,11 +301,23 @@ export const ContentGraphView: React.FC<ContentGraphViewProps> = ({
         )}
 
         <form onSubmit={handleAskQuestion} className="flex gap-2">
+          <button
+            type="button"
+            onClick={startVoiceInput}
+            className={`tactile-btn flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+              isListening
+                ? "bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse"
+                : "bg-zinc-900 text-zinc-300 border-white/10 hover:border-cyan-500/40 hover:text-white"
+            }`}
+            title="Speak your question using microphone"
+          >
+            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
           <input
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask a question about this verified content..."
+            placeholder={isListening ? "Listening to your voice..." : "Ask a question about this verified content..."}
             disabled={isAsking}
             className="flex-1 rounded-xl border border-white/10 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-cyan-500/50 focus:outline-none"
           />

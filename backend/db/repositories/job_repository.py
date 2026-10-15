@@ -7,7 +7,8 @@ from backend.models.schemas import (
     ContentGraph,
     AudioBriefing,
     Quiz,
-    StoryDeck
+    StoryDeck,
+    ExecutiveBrief
 )
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,11 @@ class JobRepository:
                 audio_json = job.audio.model_dump_json() if job.audio else None
                 quiz_json = job.quiz.model_dump_json() if job.quiz else None
                 story_deck_json = job.story_deck.model_dump_json() if job.story_deck else None
+                executive_brief_json = job.executive_brief.model_dump_json() if job.executive_brief else None
 
                 await db.execute("""
-                    INSERT INTO jobs (job_id, stage, progress_pct, message, graph_json, audio_json, quiz_json, story_deck_json, error)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO jobs (job_id, stage, progress_pct, message, graph_json, audio_json, quiz_json, story_deck_json, executive_brief_json, error)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(job_id) DO UPDATE SET
                         stage=excluded.stage,
                         progress_pct=excluded.progress_pct,
@@ -35,6 +37,7 @@ class JobRepository:
                         audio_json=excluded.audio_json,
                         quiz_json=excluded.quiz_json,
                         story_deck_json=excluded.story_deck_json,
+                        executive_brief_json=excluded.executive_brief_json,
                         error=excluded.error
                 """, (
                     job.job_id,
@@ -45,6 +48,7 @@ class JobRepository:
                     audio_json,
                     quiz_json,
                     story_deck_json,
+                    executive_brief_json,
                     job.error
                 ))
                 await db.commit()
@@ -56,7 +60,7 @@ class JobRepository:
         try:
             async with get_db_connection() as db:
                 async with db.execute("""
-                    SELECT job_id, stage, progress_pct, message, graph_json, audio_json, quiz_json, story_deck_json, error
+                    SELECT job_id, stage, progress_pct, message, graph_json, audio_json, quiz_json, story_deck_json, error, executive_brief_json
                     FROM jobs WHERE job_id = ?
                 """, (job_id,)) as cursor:
                     row = await cursor.fetchone()
@@ -67,6 +71,12 @@ class JobRepository:
                     audio = AudioBriefing.model_validate_json(row[5]) if row[5] else None
                     quiz = Quiz.model_validate_json(row[6]) if row[6] else None
                     story_deck = StoryDeck.model_validate_json(row[7]) if row[7] else None
+                    executive_brief = None
+                    if len(row) > 9 and row[9]:
+                        try:
+                            executive_brief = ExecutiveBrief.model_validate_json(row[9])
+                        except Exception:
+                            pass
 
                     return JobStatus(
                         job_id=row[0],
@@ -77,6 +87,7 @@ class JobRepository:
                         audio=audio,
                         quiz=quiz,
                         story_deck=story_deck,
+                        executive_brief=executive_brief,
                         error=row[8]
                     )
         except Exception as e:

@@ -17,22 +17,32 @@ import {
   BarChart3,
   ArrowRightLeft,
   Code,
-  Newspaper
+  Newspaper,
+  Briefcase,
+  Calculator,
+  DollarSign,
+  Key
 } from "lucide-react";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { TrustInspector } from "@/components/TrustInspector";
 import { ContentGraphView } from "@/components/ContentGraphView";
 import { QuizWidget } from "@/components/QuizWidget";
 import { StoryCardDeck } from "@/components/StoryCardDeck";
+import { ExecutiveBriefView } from "@/components/ExecutiveBriefView";
 import { PersonaComparisonModal } from "@/components/PersonaComparisonModal";
 import { InsightsDrawer } from "@/components/InsightsDrawer";
 import { EmbedSandboxModal } from "@/components/EmbedSandboxModal";
+import { ROICalculatorModal } from "@/components/ROICalculatorModal";
+import { PricingModal } from "@/components/PricingModal";
+import { UsageDashboardModal } from "@/components/UsageDashboardModal";
+import { PublisherRevenueModal } from "@/components/PublisherRevenueModal";
 import {
   IngestType,
   LensType,
   PersonaType,
   JobStatus,
-  SampleItem
+  SampleItem,
+  PlanTier
 } from "@/types";
 import { api } from "@/services/api";
 
@@ -55,12 +65,18 @@ export default function Home() {
   const [backendHealthy, setBackendHealthy] = useState<boolean | null>(null);
 
   // Active Output Format Tab
-  const [activeFormat, setActiveFormat] = useState<"audio" | "quiz" | "story">("audio");
+  const [activeFormat, setActiveFormat] = useState<"all" | "audio" | "brief" | "quiz" | "story">("all");
 
   // Modals state
   const [showPersonaModal, setShowPersonaModal] = useState(false);
   const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
   const [showEmbedSandbox, setShowEmbedSandbox] = useState(false);
+  const [showROICalculator, setShowROICalculator] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [showPublisherRevenueModal, setShowPublisherRevenueModal] = useState(false);
+  const [currentTier, setCurrentTier] = useState<PlanTier>("professional");
+  const [creditsRemaining, setCreditsRemaining] = useState<number>(8420);
 
   // Fetch backend health and demo samples on load
   useEffect(() => {
@@ -71,6 +87,13 @@ export default function Home() {
     api.getSamples()
       .then((data) => setSamples(data))
       .catch((err) => console.warn("Failed to load samples:", err));
+
+    api.getUsageSummary()
+      .then((usage) => {
+        setCreditsRemaining(usage.credits_remaining);
+        setCurrentTier(usage.tier);
+      })
+      .catch((err) => console.warn("Failed to load usage summary:", err));
   }, []);
 
   // Handle SSE streaming updates for the active job
@@ -194,19 +217,54 @@ export default function Home() {
 
           {/* Quick Action Navigation */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowROICalculator(true)}
+              className="tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-900/30"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">ROI Calculator</span>
+            </button>
+
+            <button
+              onClick={() => setShowPublisherRevenueModal(true)}
+              className="tactile-btn hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              <span>Ad Share ($)</span>
+            </button>
+
+            <button
+              onClick={() => setShowPricingModal(true)}
+              className="tactile-btn hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-zinc-900/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Plans</span>
+            </button>
+
+            <button
+              onClick={() => setShowUsageModal(true)}
+              className="tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/30 text-xs font-semibold text-cyan-300 hover:bg-cyan-900/40"
+            >
+              <Zap className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="font-mono font-bold">{creditsRemaining.toLocaleString()}</span>
+              <span className="text-[10px] uppercase font-mono px-1 py-0.2 rounded bg-cyan-900/60 text-cyan-200 hidden sm:inline">
+                {currentTier}
+              </span>
+            </button>
+
             {jobStatus?.graph && (
               <>
                 <button
                   onClick={() => setShowPersonaModal(true)}
-                  className="tactile-btn hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-zinc-900/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                  className="tactile-btn hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-zinc-900/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-white"
                 >
-                  <ArrowRightLeft className="h-3.5 w-3.5 text-cyan-400" /> Persona Matrix
+                  <ArrowRightLeft className="h-3.5 w-3.5 text-cyan-400" /> Persona
                 </button>
                 <button
                   onClick={() => setShowInsightsDrawer(true)}
-                  className="tactile-btn hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
+                  className="tactile-btn hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
                 >
-                  <BarChart3 className="h-3.5 w-3.5 text-amber-400" /> Audience Insights
+                  <BarChart3 className="h-3.5 w-3.5 text-amber-400" /> Insights
                 </button>
               </>
             )}
@@ -215,7 +273,8 @@ export default function Home() {
               onClick={() => setShowEmbedSandbox(true)}
               className="tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-zinc-900/80 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-white"
             >
-              <Code className="h-3.5 w-3.5 text-cyan-400" /> Publisher Embed
+              <Code className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Embed</span>
             </button>
           </div>
 
@@ -449,8 +508,12 @@ export default function Home() {
                       className="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 focus:border-cyan-500/50 focus:outline-none"
                     >
                       <option value="en">English (Global)</option>
-                      <option value="hi">Hindi (हिंदी)</option>
-                      <option value="mr">Marathi (मराठी)</option>
+                      <option value="hi">Hindi (हिंदी - Vernacular)</option>
+                      <option value="mr">Marathi (मराठी - प्रादेशिक)</option>
+                      <option value="ta">Tamil (தமிழ் - வட்டார மொழி)</option>
+                      <option value="bn">Bengali (বাংলা - আঞ্চলিক)</option>
+                      <option value="hi-Latn">Hinglish (Urban Code-Mixed)</option>
+                      <option value="es">Spanish (Español Global)</option>
                     </select>
                   </div>
                 </div>
@@ -516,36 +579,56 @@ export default function Home() {
           <div className="space-y-6 pt-4">
             {/* Bento Studio Switcher Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-              <div className="flex items-center bg-zinc-900/90 border border-white/5 rounded-xl p-1 gap-1">
+              <div className="flex items-center bg-zinc-900/90 border border-white/5 rounded-xl p-1 gap-1 flex-wrap">
+                <button
+                  onClick={() => setActiveFormat("all")}
+                  className={`tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    activeFormat === "all"
+                      ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> All Formats
+                </button>
+                <button
+                  onClick={() => setActiveFormat("brief")}
+                  className={`tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    activeFormat === "brief"
+                      ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Briefcase className="h-3.5 w-3.5" /> Executive Brief & Flashcards
+                </button>
                 <button
                   onClick={() => setActiveFormat("audio")}
-                  className={`tactile-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                     activeFormat === "audio"
                       ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  <Radio className="h-4 w-4" /> Audio Briefing
+                  <Radio className="h-3.5 w-3.5" /> Audio Briefing
                 </button>
                 <button
                   onClick={() => setActiveFormat("quiz")}
-                  className={`tactile-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                     activeFormat === "quiz"
                       ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  <HelpCircle className="h-4 w-4" /> Interactive Quiz
+                  <HelpCircle className="h-3.5 w-3.5" /> Interactive Quiz
                 </button>
                 <button
                   onClick={() => setActiveFormat("story")}
-                  className={`tactile-btn flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                     activeFormat === "story"
                       ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  <Layers className="h-4 w-4" /> Visual Story Cards
+                  <Layers className="h-3.5 w-3.5" /> Story Cards
                 </button>
               </div>
 
@@ -585,37 +668,53 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Asymmetric Bento Architecture: Row 2 (5 + 4 + 3) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {jobStatus.audio && (
-                <div className="lg:col-span-5">
-                  <AudioPlayer
-                    briefing={jobStatus.audio}
-                    backendBaseUrl={BACKEND_URL}
-                  />
-                </div>
-              )}
+            {/* Executive Strategic Brief & 3D Flashcards */}
+            {(activeFormat === "all" || activeFormat === "brief") && jobStatus.executive_brief && (
+              <div className="pt-2">
+                <ExecutiveBriefView
+                  brief={jobStatus.executive_brief}
+                  graph={jobStatus.graph}
+                />
+              </div>
+            )}
 
-              {jobStatus.quiz && (
-                <div className="lg:col-span-4">
-                  <QuizWidget
-                    quiz={jobStatus.quiz}
-                    jobId={jobStatus.job_id}
-                    backendBaseUrl={BACKEND_URL}
-                  />
-                </div>
-              )}
+            {/* Asymmetric Bento Architecture: Multi-Format Row */}
+            {(activeFormat === "all" || activeFormat === "audio" || activeFormat === "quiz" || activeFormat === "story") && (
+              <div className={`grid grid-cols-1 gap-6 items-start ${
+                activeFormat === "all"
+                  ? "lg:grid-cols-12"
+                  : "max-w-4xl mx-auto"
+              }`}>
+                {(activeFormat === "all" || activeFormat === "audio") && jobStatus.audio && (
+                  <div className={activeFormat === "all" ? "lg:col-span-5" : "w-full"}>
+                    <AudioPlayer
+                      briefing={jobStatus.audio}
+                      backendBaseUrl={BACKEND_URL}
+                    />
+                  </div>
+                )}
 
-              {jobStatus.story_deck && (
-                <div className="lg:col-span-3">
-                  <StoryCardDeck
-                    storyDeck={jobStatus.story_deck}
-                    jobId={jobStatus.job_id}
-                    backendBaseUrl={BACKEND_URL}
-                  />
-                </div>
-              )}
-            </div>
+                {(activeFormat === "all" || activeFormat === "quiz") && jobStatus.quiz && (
+                  <div className={activeFormat === "all" ? "lg:col-span-4" : "w-full"}>
+                    <QuizWidget
+                      quiz={jobStatus.quiz}
+                      jobId={jobStatus.job_id}
+                      backendBaseUrl={BACKEND_URL}
+                    />
+                  </div>
+                )}
+
+                {(activeFormat === "all" || activeFormat === "story") && jobStatus.story_deck && (
+                  <div className={activeFormat === "all" ? "lg:col-span-3" : "w-full"}>
+                    <StoryCardDeck
+                      storyDeck={jobStatus.story_deck}
+                      jobId={jobStatus.job_id}
+                      backendBaseUrl={BACKEND_URL}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -643,6 +742,37 @@ export default function Home() {
         isOpen={showEmbedSandbox}
         onClose={() => setShowEmbedSandbox(false)}
         backendBaseUrl={BACKEND_URL}
+      />
+
+      {/* Monetization & Revenue Modals */}
+      <ROICalculatorModal
+        isOpen={showROICalculator}
+        onClose={() => setShowROICalculator(false)}
+        onOpenPricing={() => setShowPricingModal(true)}
+      />
+
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        currentTier={currentTier}
+        onPlanUpdated={(newTier) => {
+          setCurrentTier(newTier);
+          api.getUsageSummary().then((u) => setCreditsRemaining(u.credits_remaining));
+        }}
+      />
+
+      <UsageDashboardModal
+        isOpen={showUsageModal}
+        onClose={() => setShowUsageModal(false)}
+        onOpenPricing={() => {
+          setShowUsageModal(false);
+          setShowPricingModal(true);
+        }}
+      />
+
+      <PublisherRevenueModal
+        isOpen={showPublisherRevenueModal}
+        onClose={() => setShowPublisherRevenueModal(false)}
       />
     </div>
   );

@@ -56,3 +56,34 @@ async def test_story_deck_generator_step():
     assert deck is not None
     assert len(deck.cards) > 0
     assert deck.cards[0].headline is not None
+
+@pytest.mark.asyncio
+async def test_executive_brief_generator_step():
+    from backend.agents.format_studio import ExecutiveBriefGeneratorStep
+    graph = ContentGraph(
+        title="Fusion Energy Pilot",
+        summary="Commercial pilot facility demonstrates net electricity breakeven threshold.",
+        reading_time_minutes=2,
+        tone="authoritative",
+        complexity_level="executive",
+        claims=[
+            Claim(
+                claim_id="claim_1",
+                quote="Output exceeded 500 MW sustained over 12 hours.",
+                normalized_statement="Net fusion power exceeded 500 MW for 12 hours.",
+                status=VerificationStatus.VERIFIED,
+                confidence=0.99
+            )
+        ],
+        trust_score=99.0
+    )
+    
+    step = ExecutiveBriefGeneratorStep()
+    ctx = await step.execute({"content_graph": graph, "persona": "executive", "language": "en"})
+    brief = ctx.get("executive_brief")
+    assert brief is not None
+    assert len(brief.strategic_takeaways) > 0
+    assert len(brief.action_items) > 0
+    assert len(brief.flashcards) > 0
+    assert brief.flashcards[0].metric is not None
+

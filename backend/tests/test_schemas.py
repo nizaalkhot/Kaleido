@@ -48,3 +48,30 @@ def test_claim_and_content_graph_validation():
     reconstructed = ContentGraph.model_validate_json(json_str)
     assert reconstructed.title == graph.title
     assert reconstructed.claims[0].confidence == 0.96
+
+def test_executive_brief_and_flashcards_validation():
+    from backend.models.schemas import ExecutiveBrief, MetricFlashcard
+    brief = ExecutiveBrief(
+        title="Executive Strategic Memo",
+        executive_summary="Key milestone achieved in production deployment.",
+        strategic_takeaways=["Rapid deployment timeline", "High cost efficiency"],
+        market_catalysts=["Regulatory approval"],
+        key_risks_and_limitations=["Scaling infrastructure"],
+        action_items=["Initiate Phase 2 review"],
+        flashcards=[
+            MetricFlashcard(
+                id="card_1",
+                metric="99.85%",
+                label="Benchmark Fidelity",
+                significance="Exceeds fault tolerance threshold.",
+                verified_source_claim="Achieved 99.85% two-qubit fidelity.",
+                claim_id="claim_1"
+            )
+        ]
+    )
+    dumped = brief.model_dump_json()
+    reconstructed = ExecutiveBrief.model_validate_json(dumped)
+    assert reconstructed.title == "Executive Strategic Memo"
+    assert len(reconstructed.flashcards) == 1
+    assert reconstructed.flashcards[0].metric == "99.85%"
+

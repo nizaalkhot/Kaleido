@@ -28,7 +28,8 @@ export const EmbedSandboxModal: React.FC<EmbedSandboxModalProps> = ({
   backendBaseUrl = "http://localhost:8000",
 }) => {
   const [copied, setCopied] = useState(false);
-  const snippet = `<script src="${backendBaseUrl}/embed.js" data-kaleido="${jobId || 'sample_job'}"></script>`;
+  const [theme, setTheme] = useState<"dark" | "light" | "compact">("dark");
+  const snippet = `<script src="${backendBaseUrl}/embed.js" data-kaleido="${jobId || 'sample_job'}" data-theme="${theme}"></script>`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(snippet);
@@ -63,6 +64,37 @@ export const EmbedSandboxModal: React.FC<EmbedSandboxModalProps> = ({
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* Theme Switcher Bar */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/5 text-xs">
+            <button
+              onClick={() => setTheme("dark")}
+              className={`tactile-btn px-3 py-1 rounded-lg font-medium transition ${
+                theme === "dark" ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Dark Theme
+            </button>
+            <button
+              onClick={() => setTheme("light")}
+              className={`tactile-btn px-3 py-1 rounded-lg font-medium transition ${
+                theme === "light" ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Light Editorial
+            </button>
+            <button
+              onClick={() => setTheme("compact")}
+              className={`tactile-btn px-3 py-1 rounded-lg font-medium transition ${
+                theme === "compact" ? "bg-zinc-800 text-cyan-300 border border-cyan-500/30" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Compact Audio Pill
+            </button>
+          </div>
+          <span className="text-[11px] font-mono text-zinc-500">Theme: {theme}</span>
         </div>
 
         {/* 1-Line Embed Code Box */}
@@ -102,27 +134,60 @@ export const EmbedSandboxModal: React.FC<EmbedSandboxModalProps> = ({
               Earlier today, experimental physicists achieved logical qubit error suppression by a decisive 12x factor, surpassing fault-tolerant surface code thresholds...
             </p>
 
-            {/* Embedded Kaleido Widget */}
-            <div className="rounded-2xl border border-cyan-500/30 bg-zinc-900/80 p-4 shadow-lg space-y-3">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-[11px] font-mono tracking-wider text-cyan-300 uppercase">KALEIDO VERIFIED BRIEFING</span>
+            {/* Embedded Kaleido Widget Mockup matching selected theme */}
+            {theme === "compact" ? (
+              <div className="inline-flex items-center gap-3 rounded-full border border-cyan-500/30 bg-zinc-900 px-4 py-2 shadow-lg">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400 text-black font-bold text-xs">
+                  ▶
                 </div>
-                <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
-                  INVARIANT 100%
+                <div className="text-xs font-semibold text-zinc-100">Listen to Verified Briefing (2 min)</div>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  ✓ Invariant
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500 text-black shadow-md shadow-cyan-500/20">
-                  <Radio className="h-4 w-4" />
+            ) : theme === "light" ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl space-y-3 text-zinc-900">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-cyan-600 animate-pulse" />
+                    <span className="text-[11px] font-mono tracking-wider text-zinc-900 font-bold uppercase">KALEIDO VERIFIED BRIEFING</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-semibold">
+                    ✓ 100% Fact-Invariant
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs font-semibold text-zinc-100">Listen: Multi-Speaker Brief (2 min)</div>
-                  <div className="text-[11px] text-zinc-400">Host & Analyst dialogue • Google Cloud Neural2 audio</div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-600 text-white shadow-md">
+                    <Radio className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-zinc-900">Listen: Multi-Speaker Brief (2 min)</div>
+                    <div className="text-[11px] text-zinc-500 font-mono">Neural2 Host & Analyst • Google Cloud Vertex AI</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-2xl border border-cyan-500/30 bg-zinc-900/80 p-4 shadow-lg space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-[11px] font-mono tracking-wider text-cyan-300 uppercase">KALEIDO VERIFIED BRIEFING</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                    INVARIANT 100%
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500 text-black shadow-md shadow-cyan-500/20">
+                    <Radio className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-zinc-100">Listen: Multi-Speaker Brief (2 min)</div>
+                    <div className="text-[11px] text-zinc-400">Host & Analyst dialogue • Google Cloud Neural2 audio</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <p className="text-xs text-zinc-400 leading-relaxed font-sans">
               The announcement marks a crucial turning point for enterprise quantum readiness, paving the way for molecular discovery beta testing...

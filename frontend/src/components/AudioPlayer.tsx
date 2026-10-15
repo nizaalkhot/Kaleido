@@ -201,6 +201,35 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Animated Waveform Equalizer when playing */}
+          {isPlaying && (
+            <div className="flex items-end gap-1 h-5 px-2 py-1 rounded bg-cyan-950/40 border border-cyan-500/20">
+              <span className="w-1 bg-cyan-400 rounded-full animate-[bounce_0.6s_ease-in-out_infinite] h-3" />
+              <span className="w-1 bg-cyan-300 rounded-full animate-[bounce_0.8s_ease-in-out_infinite_0.2s] h-4" />
+              <span className="w-1 bg-cyan-500 rounded-full animate-[bounce_0.5s_ease-in-out_infinite_0.4s] h-2" />
+              <span className="w-1 bg-cyan-400 rounded-full animate-[bounce_0.7s_ease-in-out_infinite_0.1s] h-3.5" />
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              const scriptText = briefing.transcript
+                .map((s) => `[${s.speaker}]: ${s.text}`)
+                .join("\n\n");
+              const blob = new Blob([scriptText], { type: "text/plain;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${briefing.title.replace(/[^a-zA-Z0-9]/g, "_")}_Script.txt`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="tactile-btn rounded-lg border border-white/10 bg-zinc-800/80 px-2.5 py-1 text-xs font-mono font-medium text-zinc-300 hover:bg-zinc-700"
+            title="Download full dialogue script as text"
+          >
+            Script .TXT
+          </button>
+
           <button
             onClick={cycleSpeed}
             className="tactile-btn rounded-lg border border-white/10 bg-zinc-800/80 px-2.5 py-1 text-xs font-mono font-medium text-zinc-300 hover:bg-zinc-700"
@@ -234,7 +263,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             />
             <div className="flex justify-between text-[11px] text-zinc-400 mt-1.5 font-mono">
               <span className="text-cyan-300 font-semibold">{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+              <span className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-500">
+                  {useSpeechFallback ? "Mode: Web Speech Fallback" : "Mode: Neural Studio"}
+                </span>
+                <span>{formatTime(duration)}</span>
+              </span>
             </div>
           </div>
         </div>

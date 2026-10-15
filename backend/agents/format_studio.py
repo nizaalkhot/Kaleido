@@ -11,7 +11,9 @@ from backend.models.schemas import (
     Quiz,
     QuizQuestion,
     StoryDeck,
-    StoryCard
+    StoryCard,
+    ExecutiveBrief,
+    MetricFlashcard
 )
 from backend.agents.workflow_engine import WorkflowStep, ParallelWorkflow
 from backend.agents.audio_pipeline import AudioGeneratorStep
@@ -216,14 +218,144 @@ Respond strictly in valid JSON matching:
         context["story_deck"] = deck
         return context
 
+class ExecutiveBriefGeneratorStep(WorkflowStep):
+    """Generates an Executive Strategic Brief & 3D Metric Flashcards."""
+    def __init__(self):
+        super().__init__("ExecutiveBriefGenerator")
+
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        graph: ContentGraph = context.get("content_graph")
+        lens = context.get("lens", "news")
+        persona = context.get("persona", "general")
+        language = context.get("language", "en")
+
+        if not graph:
+            return context
+
+        client = config.get_genai_client()
+        claims_context = "\n".join([f"- [{c.claim_id}] {c.normalized_statement}" for c in graph.claims[:6]])
+
+        prompt = f"""
+You are Kaleido's Chief Strategic Intelligence Officer.
+Synthesize an Executive Strategic Brief and Key Metric Flashcards strictly based on the verified facts below.
+
+Target Lens: {lens}
+Target Persona: {persona}
+Language: {language} (if 'hi', naturally transcreate into high-level Hindi/Hinglish; if 'mr', in Marathi; if 'ta', Tamil; if 'bn', Bengali; if 'es', Spanish; otherwise English)
+
+Title: {graph.title}
+Summary: {graph.summary}
+Verified Claims:
+{claims_context}
+
+Requirements:
+1. title: Clear strategic briefing title.
+2. executive_summary: 2-3 sentences concise strategic overview.
+3. strategic_takeaways: 3 punchy bullet points on business/operational/scientific impact.
+4. market_catalysts: 2 key catalysts or tailwinds driving adoption or breakthrough.
+5. key_risks_and_limitations: 2 crucial risks, technical bottlenecks, or regulatory considerations.
+6. action_items: 2-3 immediate recommended actions for decision-makers.
+7. flashcards: 3-4 metric cards. Each card must have:
+   - id: "card_1", "card_2", etc.
+   - metric: prominent statistic, number, or milestone (e.g. "99.85%", ">13B Years", "$4.2M", "1.5M km")
+   - label: 2-4 word descriptor (e.g. "Gate Fidelity", "Lookback Horizon")
+   - significance: why this number matters
+   - verified_source_claim: the underlying fact
+   - claim_id: corresponding claim_id if available
+
+Respond strictly in valid JSON matching:
+{{
+  "title": "Executive Briefing: {graph.title}",
+  "executive_summary": "...",
+  "strategic_takeaways": ["...", "...", "..."],
+  "market_catalysts": ["...", "..."],
+  "key_risks_and_limitations": ["...", "..."],
+  "action_items": ["...", "..."],
+  "flashcards": [
+    {{
+      "id": "card_1",
+      "metric": "99.85%",
+      "label": "Benchmark Fidelity",
+      "significance": "Reaches threshold required for fault-tolerant error suppression.",
+      "verified_source_claim": "...",
+      "claim_id": "claim_1"
+    }}
+  ]
+}}
+"""
+        try:
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model=config.GEMINI_PRO_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            data = clean_and_parse_json(response.text, default={})
+            flashcards = [MetricFlashcard(**fc) for fc in data.get("flashcards", [])]
+            brief = ExecutiveBrief(
+                title=data.get("title", f"Executive Brief: {graph.title}"),
+                executive_summary=data.get("executive_summary", graph.summary),
+                strategic_takeaways=data.get("strategic_takeaways", [graph.summary[:100]]),
+                market_catalysts=data.get("market_catalysts", ["Accelerated technical innovation", "Enhanced operational efficiency"]),
+                key_risks_and_limitations=data.get("key_risks_and_limitations", ["Scalability constraints", "Verification overhead"]),
+                action_items=data.get("action_items", ["Validate metrics against internal benchmarks", "Integrate into active planning"]),
+                flashcards=flashcards
+            )
+        except Exception as e:
+            logger.warning(f"ExecutiveBrief LLM fallback: {e}")
+            fallback_cards = []
+            for i, c in enumerate(graph.claims[:3]):
+                words = c.normalized_statement.split()
+                num_metric = next((w for w in words if any(ch.isdigit() for ch in w)), f"Fact #{i+1}")
+                fallback_cards.append(
+                    MetricFlashcard(
+                        id=f"card_{i+1}",
+                        metric=num_metric,
+                        label="Verified Finding",
+                        significance=c.normalized_statement[:100],
+                        verified_source_claim=c.quote or c.normalized_statement,
+                        claim_id=c.claim_id
+                    )
+                )
+
+            brief = ExecutiveBrief(
+                title=f"Strategic Intelligence: {graph.title}",
+                executive_summary=graph.summary,
+                strategic_takeaways=[
+                    f"Core finding: {graph.title}",
+                    f"Verified trust index at {graph.trust_score}% across all claims.",
+                    "Demonstrates measurable progression against established baselines."
+                ],
+                market_catalysts=[
+                    "Rising demand for verified multi-format distribution",
+                    "Rapid adoption of AI-grounded decision architectures"
+                ],
+                key_risks_and_limitations=[
+                    "Requires strict fact-invariance adherence across formats",
+                    "Real-world deployment dependent on infrastructure readiness"
+                ],
+                action_items=[
+                    "Disseminate verified brief to key stakeholders",
+                    "Monitor downstream audience reception and drop-off"
+                ],
+                flashcards=fallback_cards
+            )
+
+        context["executive_brief"] = brief
+        return context
+
 class FormatStudioWorkflow(ParallelWorkflow):
-    """Runs Audio, Quiz, and Story Card generators concurrently."""
+    """Runs Audio, Quiz, Story Card, and Executive Brief generators concurrently."""
     def __init__(self):
         super().__init__(
             "FormatStudio",
             [
                 AudioGeneratorStep(),
                 QuizGeneratorStep(),
-                StoryDeckGeneratorStep()
+                StoryDeckGeneratorStep(),
+                ExecutiveBriefGeneratorStep()
             ]
         )
+

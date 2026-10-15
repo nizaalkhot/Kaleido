@@ -149,7 +149,7 @@ class JobManager:
             # Stage 4: Multi-Format Studio (Audio, Quiz, Story Cards in parallel!)
             job.stage = JobStage.GENERATING_AUDIO
             job.progress_pct = 80
-            job.message = "FormatStudio: Generating Audio Briefing, Interactive Quiz, and Story Cards concurrently..."
+            job.message = "FormatStudio: Generating Audio Briefing, Interactive Quiz, Story Cards, and Executive Brief concurrently..."
             await job_repository.save_job(job)
             await self._broadcast(job_id, job)
 
@@ -158,6 +158,7 @@ class JobManager:
             job.audio = context.get("audio_briefing")
             job.quiz = context.get("quiz")
             job.story_deck = context.get("story_deck")
+            job.executive_brief = context.get("executive_brief")
             await self._broadcast(job_id, job)
 
             # Stage 5: Completed
@@ -167,6 +168,20 @@ class JobManager:
             await job_repository.save_job(job)
             await self._broadcast(job_id, job)
             logger.info(f"Job {job_id} successfully completed with full format suite!")
+
+            # Metering credit deduction
+            try:
+                from backend.billing.metering import metering_engine
+                default_key = await metering_engine.get_default_key_info()
+                await metering_engine.consume_credits(
+                    api_key_id=default_key.id,
+                    org_id=default_key.org_id,
+                    operation="Full Pipeline Synthesize",
+                    credits=10,
+                    job_id=job_id
+                )
+            except Exception as me:
+                logger.debug(f"Non-blocking metering deduction: {me}")
 
         except Exception as e:
             logger.exception(f"Job {job_id} failed: {e}")

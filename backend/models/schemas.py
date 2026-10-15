@@ -101,13 +101,30 @@ class StoryDeck(BaseModel):
     title: str
     cards: List[StoryCard] = Field(default_factory=list)
 
+class MetricFlashcard(BaseModel):
+    id: str = Field(..., description="Flashcard identifier, e.g. card_1")
+    metric: str = Field(..., description="Key quantitative figure or milestone metric")
+    label: str = Field(..., description="Brief label or indicator name")
+    significance: str = Field(..., description="Why this metric matters strategically or scientifically")
+    verified_source_claim: str = Field(..., description="Underlying verified source fact")
+    claim_id: Optional[str] = None
+
+class ExecutiveBrief(BaseModel):
+    title: str
+    executive_summary: str
+    strategic_takeaways: List[str] = Field(default_factory=list)
+    market_catalysts: List[str] = Field(default_factory=list)
+    key_risks_and_limitations: List[str] = Field(default_factory=list)
+    action_items: List[str] = Field(default_factory=list)
+    flashcards: List[MetricFlashcard] = Field(default_factory=list)
+
 class IngestRequest(BaseModel):
     input_type: IngestType = Field(default=IngestType.TEXT)
     content: Optional[str] = Field(default=None, description="Raw text or base64 PDF")
     url: Optional[str] = Field(default=None, description="Target webpage URL")
     lens: LensType = Field(default=LensType.NEWS)
     persona: PersonaType = Field(default=PersonaType.GENERAL)
-    language: str = Field(default="en", description="Target language code (en, hi, mr)")
+    language: str = Field(default="en", description="Target language code (en, hi, mr, ta, bn, es)")
 
 class JobStage(str, Enum):
     QUEUED = "queued"
@@ -127,6 +144,7 @@ class JobStatus(BaseModel):
     audio: Optional[AudioBriefing] = None
     quiz: Optional[Quiz] = None
     story_deck: Optional[StoryDeck] = None
+    executive_brief: Optional[ExecutiveBrief] = None
     error: Optional[str] = None
 
 class SampleItem(BaseModel):
@@ -170,4 +188,18 @@ class OptimizeRequest(BaseModel):
 class GroundedQARequest(BaseModel):
     job_id: str
     question: str
+
+class GroundedCitation(BaseModel):
+    claim_id: str
+    statement: str
+    quote: Optional[str] = None
+    confidence: float = 1.0
+    external_sources: List[str] = Field(default_factory=list)
+
+class GroundedQAResponse(BaseModel):
+    question: str
+    answer: str
+    trust_score: float
+    citations: List[GroundedCitation] = Field(default_factory=list)
+    suggested_questions: List[str] = Field(default_factory=list)
 

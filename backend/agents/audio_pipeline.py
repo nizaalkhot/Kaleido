@@ -130,44 +130,59 @@ Respond strictly in JSON matching:
         language: str
     ) -> tuple[str, float, List[AudioSegment]]:
         """Synthesize dual-speaker neural audio turns using edge-tts with deterministic fingerprinting."""
-        # Voice selection
-        if language.startswith("hi"):
+        # Vernacular and global voice selection
+        lang_lower = language.lower()
+        if lang_lower.startswith("hi"):
             host_voice = "hi-IN-MadhurNeural"
             analyst_voice = "hi-IN-SwaraNeural"
             lang_code = "hi-IN"
-        elif language.startswith("mr"):
+        elif lang_lower.startswith("mr"):
             host_voice = "mr-IN-AarohiNeural"
             analyst_voice = "mr-IN-AarohiNeural"
             lang_code = "mr-IN"
+        elif lang_lower.startswith("ta"):
+            host_voice = "ta-IN-ValluvarNeural"
+            analyst_voice = "ta-IN-PallaviNeural"
+            lang_code = "ta-IN"
+        elif lang_lower.startswith("bn"):
+            host_voice = "bn-IN-BashkarNeural"
+            analyst_voice = "bn-IN-TanishaaNeural"
+            lang_code = "bn-IN"
+        elif lang_lower.startswith("es"):
+            host_voice = "es-ES-AlvaroNeural"
+            analyst_voice = "es-ES-ElviraNeural"
+            lang_code = "es-ES"
         else:
             host_voice = "en-US-GuyNeural"
             analyst_voice = "en-US-JennyNeural"
             lang_code = "en-US"
 
+        # Pre-construct calculated segments so transcript is ALWAYS complete and timed
+        calculated_segments: List[AudioSegment] = []
+        total_time = 0.0
+        for turn in turns:
+            words = len(turn.text.split())
+            est_duration = max(2.0, round(words / 2.3, 2))
+            end_time = round(total_time + est_duration, 2)
+            calculated_segments.append(
+                AudioSegment(
+                    speaker=turn.speaker,
+                    text=turn.text,
+                    start_time=total_time,
+                    end_time=end_time
+                )
+            )
+            total_time = end_time
+
         # Deterministic SHA-256 fingerprint for audio dialogue
         audio_hash = cache_service.compute_audio_hash(turns, language, host_voice, analyst_voice)
         filename = f"briefing_{audio_hash}.mp3"
         output_path = config.AUDIO_OUTPUT_DIR / filename
-        segments: List[AudioSegment] = []
-        current_time = 0.0
 
         # 1. Check if cached valid audio file already exists (> 10KB)
         if output_path.exists() and output_path.stat().st_size > 10000:
             logger.info(f"⚡ Audio cache HIT for hash '{audio_hash}'. Reusing {filename} ({output_path.stat().st_size} bytes).")
-            for turn in turns:
-                words = len(turn.text.split())
-                est_duration = max(2.0, round(words / 2.4, 2))
-                end_time = round(current_time + est_duration, 2)
-                segments.append(
-                    AudioSegment(
-                        speaker=turn.speaker,
-                        text=turn.text,
-                        start_time=current_time,
-                        end_time=end_time
-                    )
-                )
-                current_time = end_time
-            return filename, current_time, segments
+            return filename, total_time, calculated_segments
 
         # 2. Synthesis via edge-tts (High-Fidelity Neural Dual-Speaker)
         try:
@@ -182,22 +197,10 @@ Respond strictly in JSON matching:
                         turn_bytes.extend(chunk["data"])
 
                 combined_audio.extend(turn_bytes)
-                words = len(turn.text.split())
-                est_duration = max(2.0, round(words / 2.4, 2))
-                end_time = round(current_time + est_duration, 2)
-                segments.append(
-                    AudioSegment(
-                        speaker=turn.speaker,
-                        text=turn.text,
-                        start_time=current_time,
-                        end_time=end_time
-                    )
-                )
-                current_time = end_time
 
             output_path.write_bytes(combined_audio)
             logger.info(f"Successfully synthesized and cached neural audio: {output_path} ({len(combined_audio)} bytes)")
-            return filename, current_time, segments
+            return filename, total_time, calculated_segments
 
         except Exception as e:
             logger.warning(f"Primary neural synthesis failed ({e}). Attempting Cloud TTS fallback...")
@@ -211,17 +214,15 @@ Respond strictly in JSON matching:
                     audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
                     response = tts_client.synthesize_speech(input=synthesis_input, voice=voice_params, audio_config=audio_config)
                     combined_audio.extend(response.audio_content)
-                    words = len(turn.text.split())
-                    est_duration = max(2.0, round(words / 2.3, 2))
-                    end_time = round(current_time + est_duration, 2)
-                    segments.append(AudioSegment(speaker=turn.speaker, text=turn.text, start_time=current_time, end_time=end_time))
-                    current_time = end_time
+
                 output_path.write_bytes(combined_audio)
-                return filename, current_time, segments
+                return filename, total_time, calculated_segments
             except Exception as cloud_err:
-                logger.error(f"TTS synthesis completely unavailable ({cloud_err}).")
-                output_path.write_bytes(b"")
-                return filename, 0.0, segments
+                logger.error(f"TTS synthesis completely unavailable ({cloud_err}). Using client-side Web Speech API fallback.")
+                # Ensure the audio output file exists even as empty placeholder so HTTP 404 is avoided
+                if not output_path.exists():
+                    output_path.write_bytes(b"")
+                return filename, total_time, calculated_segments
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         graph: ContentGraph = context.get("content_graph")
